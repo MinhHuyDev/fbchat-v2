@@ -36,7 +36,7 @@ Tutorial (Hướng dẫn)
   
   cd fbchat-v2/src && type nul > mainBot.py
 
-*Đối với* **Mac/Lunix:**
+*Đối với* **Mac/Linux:**
 
 .. code-block:: bash
   
@@ -45,10 +45,10 @@ Tutorial (Hướng dẫn)
 
 .. code-block:: python
 
-  import __facebooKTolsV2 # BẮT BUỘC
-  import __messageListen # BẮT BUỘC
-  import __sendMessage # BẮT BUỘC
-  import __uploadImages # KHÔNG BẮT BUỘC (Tùy thuộc vào b có muốn dùng ảnh hay không)
+  import facebookToolsV2 # BẮT BUỘC
+  import messageListen # BẮT BUỘC
+  import sendMessage # BẮT BUỘC
+  import uploadImages # KHÔNG BẮT BUỘC (Tùy thuộc vào b có muốn dùng ảnh hay không)
   import json, requests, datetime, time
 
   # Đợi thêm nhé, lười viết nữa òi ^^
