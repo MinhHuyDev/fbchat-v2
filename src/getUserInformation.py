@@ -1,7 +1,7 @@
 import json, requests, time, json, attr, random
 # from LorenBot.plugins import __facebookToolsV2
 import datetime
-import __facebookToolsV2
+import facebookToolsV2
 
 def digitToChar(digit):
           if digit < 10:

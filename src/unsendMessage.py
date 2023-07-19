@@ -1,5 +1,5 @@
 import requests, json
-import __facebookToolsV2
+import facebookToolsV2
 
 def digitToChar(digit):
           if digit < 10:
@@ -61,13 +61,13 @@ def Main(messageID, dataFB):
      dataForm["message_id"] = messageID
 
      mainRequests = {
-        "headers": Headers(dataFB["cookieFacebook"], dataForm),
-        "timeout": 5,
-        "url": "https://www.facebook.com/messaging/unsend_message/",
-        "data": dataForm,
-        "cookies": parse_cookie_string(dataFB["cookieFacebook"]),
-        "verify": True
-    }
+     "headers": Headers(dataFB["cookieFacebook"], dataForm),
+     "timeout": 5,
+     "url": "https://www.facebook.com/messaging/unsend_message/",
+     "data": dataForm,
+     "cookies": parse_cookie_string(dataFB["cookieFacebook"]),
+     "verify": True
+}
      
      sendRequests = json.loads(requests.post(**mainRequests).text.split("for (;;);")[1])
 

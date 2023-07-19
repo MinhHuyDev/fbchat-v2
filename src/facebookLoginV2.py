@@ -14,11 +14,11 @@ Updated: 28/12/2022
 """
 
 def randStr(length):
-    return "".join(random.choices(string.ascii_lowercase + string.digits, k=length))
+     return "".join(random.choices(string.ascii_lowercase + string.digits, k=length))
 
 def GetToken2FA(key2Fa):
-    twoFARequests = json.loads(requests.get("https://2fa.live/tok/" + key2Fa.replace(" ","")).text)
-    return twoFARequests["token"]
+     twoFARequests = json.loads(requests.get("https://2fa.live/tok/" + key2Fa.replace(" ","")).text)
+     return twoFARequests["token"]
 
 
 def Headers(cookiesFB=None):
@@ -85,7 +85,7 @@ def loginFacebook(userFB=None, passFB=None, authenticationGG=None):
           "api_key": "882a8490361da98702bf97a021ddc14d",
           "access_token": "350685531728|62f8ce9f74b12f84c123cc23437a4a32"
      }
-    
+
      dataJson = json.loads(requests.post("https://b-graph.facebook.com/auth/login",data=dataForm, headers=headers).text)
      if (dataJson.get("error") != None):
           if (dataJson["error"]["error_subcode"] == 1348162):
@@ -189,7 +189,7 @@ def loginFacebook(userFB=None, passFB=None, authenticationGG=None):
 """ Hướng dẫn sử dụng (Tutorial)
 
  * Dữ liệu yêu cầu (args):
- 
+
      - userFB: username/phone/gmail Facebook
      - passFB: Mật khẩu Facebook
      - authenticationGG: mã 2fa (nếu có)

@@ -1,6 +1,6 @@
 import json, requests, re, json
 from bs4 import BeautifulSoup
-import __facebookToolsV2
+import facebookToolsV2
 import datetime
 """
 Lời nói đầu, Xin NHẮC là đây là lấy tin nhắn từ m.facebook.com, chứ không phải từ
@@ -47,15 +47,15 @@ def jsonFormat(senderID, messageContents, messageID, overviewRequests):
 def Listen(dataFB, threadID, Url="https://m.facebook.com"):
      mainRequests = {
                "headers": {
-                   "Host": "m.facebook.com",
-                   "Connection": "keep-alive",
-                   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36",
-                   "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-                   "Sec-Fetch-Site": "none",
-                   "Sec-Fetch-Mode": "navigate",
-                   "Sec-Fetch-User": "?1",
-                   "Sec-Fetch-Dest": "document",
-                   "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7"
+                    "Host": "m.facebook.com",
+                    "Connection": "keep-alive",
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36",
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+                    "Sec-Fetch-Site": "none",
+                    "Sec-Fetch-Mode": "navigate",
+                    "Sec-Fetch-User": "?1",
+                    "Sec-Fetch-Dest": "document",
+                    "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7"
                },
                "timeout": 5,
                "url": "{}/messages/t/{}".format(Url, threadID), 
@@ -85,7 +85,7 @@ def Listen(dataFB, threadID, Url="https://m.facebook.com"):
                               messageContents = "Ký tự đặc biệt hoặc file được gửi"
                          else:
                               messageContents = "Unknown"
-                      
+
                     mainJsonFormat = {
                          "senderID": senderID,
                          "messageContents": messageContents,
@@ -102,7 +102,7 @@ def Listen(dataFB, threadID, Url="https://m.facebook.com"):
 """ Hướng dẫn sử dụng (Tutorial):
 
  * Dữ liệu yêu cầu (args):
- 
+
      - dataFB: lấy từ __facebookToolsV2.dataGetHome
      - setCookies: cookie tài khoản FB (dùng cho __facebookToolsV2)
      - threadID: ID Nhóm (Thread)

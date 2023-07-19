@@ -7,7 +7,7 @@ import random, attr
 from os.path import basename
 from mimetypes import guess_type
 import requests, json
-import __facebookToolsV2
+import facebookToolsV2
 def Main(filenames, setCookies):
      def digitToChar(digit):
           if digit < 10:
@@ -24,9 +24,9 @@ def Main(filenames, setCookies):
           return digitToChar(m)
      def mimetype_to_key(mimetype):
           if not mimetype:
-              return "file_id"
+               return "file_id"
           if mimetype == "image/gif":
-              return "gif_id"
+               return "gif_id"
           checkData = mimetype.split("/")
           if checkData[0] in ["video", "image", "audio"]:
                return "%s_id" % checkData[0]
@@ -34,7 +34,7 @@ def Main(filenames, setCookies):
      
      USER_AGENTS = ["Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.90 Safari/537.36", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_3) AppleWebKit/601.1.10 (KHTML, like Gecko) Version/8.0.5 Safari/601.1.10", "Mozilla/5.0 (Windows NT 6.3; WOW64; ; NCT50_AAP285C84A1328) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.90 Safari/537.36", "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.1 (KHTML, like Gecko) Chrome/22.0.1207.1 Safari/537.1", "Mozilla/5.0 (X11; CrOS i686 2268.111.0) AppleWebKit/536.11 (KHTML, like Gecko) Chrome/20.0.1132.57 Safari/536.11", "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/536.6 (KHTML, like Gecko) Chrome/20.0.1092.0 Safari/536.6"]
      
-     getData = __facebookToolsV2.dataGetHome(setCookies)
+     getData = facebookToolsV2.dataGetHome(setCookies)
      headers = {
      "Referer": "https://www.facebook.com",
      "Accept": "text/html",
@@ -65,8 +65,8 @@ def Main(filenames, setCookies):
      resultRequests = json.loads(requests.post("https://upload.facebook.com/ajax/mercury/upload.php", headers=headers, data=dataForm, files=file_dict).text.replace("for (;;);", ""))["payload"]
      
      resultData = [
-                 (data[mimetype_to_key(data["filetype"])], data["filetype"])
-                 for data in resultRequests["metadata"]
+               (data[mimetype_to_key(data["filetype"])], data["filetype"])
+               for data in resultRequests["metadata"]
      ]
      
      return {
