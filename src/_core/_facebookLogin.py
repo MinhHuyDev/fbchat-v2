@@ -31,6 +31,7 @@ def jsonResults(dataJson, statusLogin, listExportCookies=None):
            }
 
 def formatSessionCookies(sessionCookies):
+     """Format Facebook session cookie entries to ['name=value; ', ...]."""
      listExportCookies = []
      for cookie in sessionCookies or []:
           if not isinstance(cookie, dict):
@@ -161,7 +162,7 @@ class loginFB:
                     if (pass2Fa.get("error") == None):
                          try:
                               listExportCookies = formatSessionCookies(pass2Fa.get("session_cookies"))
-                              return dataJson(pass2Fa, 1, listExportCookies)
+                              return jsonResults(pass2Fa, 1, listExportCookies)
                          except Exception as errLog:
                               return {"error": {"description": str(errLog)}}
                     else:
@@ -169,11 +170,8 @@ class loginFB:
                else:
                     return jsonResults(dataJson, 0)
           else:
-               try:
-                    listExportCookies = formatSessionCookies(dataJson.get("session_cookies"))
-                    return jsonResults(dataJson, 1, listExportCookies)
-               finally:
-                    pass# return dataJson
+               listExportCookies = formatSessionCookies(dataJson.get("session_cookies"))
+               return jsonResults(dataJson, 1, listExportCookies)
 
 
 """
