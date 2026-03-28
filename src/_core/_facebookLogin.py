@@ -28,7 +28,21 @@ def jsonResults(dataJson, statusLogin, listExportCookies=None):
                     "error_code": dataJson["error"]["code"],
                     "fbtrace_id": dataJson["error"]["fbtrace_id"],
                }
-          }
+           }
+
+def formatSessionCookies(sessionCookies):
+     listExportCookies = []
+     for cookie in sessionCookies or []:
+          if not isinstance(cookie, dict):
+               continue
+
+          cookieName = cookie.get("name")
+          cookieValue = cookie.get("value")
+          if cookieName is None or cookieValue is None:
+               continue
+
+          listExportCookies.append(f"{cookieName}={cookieValue}; ")
+     return listExportCookies
                
 def randStr(length):
     return "".join(random.choices(string.ascii_lowercase + string.digits, k=length))
@@ -146,13 +160,7 @@ class loginFB:
                     pass2Fa = json.loads(requests.post("https://b-graph.facebook.com/auth/login",data=dataForm2Fa, headers=headers).text)
                     if (pass2Fa.get("error") == None):
                          try:
-                              listExportCookies = []
-                              for cookie in pass2Fa.get("session_cookies", []):
-                                   try:
-                                        listExportCookies.append(f"{cookie['name']}={cookie['value']}; ")
-                                   except KeyError:
-                                        break
-
+                              listExportCookies = formatSessionCookies(pass2Fa.get("session_cookies"))
                               return dataJson(pass2Fa, 1, listExportCookies)
                          except Exception as errLog:
                               return {"error": {"description": str(errLog)}}
@@ -162,12 +170,7 @@ class loginFB:
                     return jsonResults(dataJson, 0)
           else:
                try:
-                    listExportCookies=[]
-                    for totalCount in range(len(dataJson["session_cookies"])):
-                         try:
-                              listExportCookies.append(dataJson["session_cookies"][totalCount + 1 - 1]["name"] + "=" + dataJson["session_cookies"][totalCount + 1 - 1]["value"] + "; ")
-                         except:
-                              break
+                    listExportCookies = formatSessionCookies(dataJson.get("session_cookies"))
                     return jsonResults(dataJson, 1, listExportCookies)
                finally:
                     pass# return dataJson
