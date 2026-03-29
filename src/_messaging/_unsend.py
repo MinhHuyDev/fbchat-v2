@@ -1,15 +1,15 @@
 import requests, json
 from _core._utils import formAll, mainRequests
  
-def func(messageID, dataFB):
+def unsend_message(message_id, facebook_data):
 
-     dataForm = formAll(dataFB, requireGraphql=False)
-     dataForm["message_id"] = messageID
+     form_data = formAll(facebook_data, requireGraphql=False)
+     form_data["message_id"] = message_id
 
-     sendRequests = json.loads(requests.post(**mainRequests("https://www.facebook.com/messaging/unsend_message/", dataForm, dataFB["cookieFacebook"])).text.split("for (;;);")[1])
+     response = json.loads(requests.post(**mainRequests("https://www.facebook.com/messaging/unsend_message/", form_data, facebook_data["cookieFacebook"])).text.split("for (;;);")[1])
 
-     if (sendRequests.get("error")):
-          return Exception({"error": str(sendRequests)})
+     if (response.get("error")):
+          return Exception({"error": str(response)})
      return {
           "success": 1,
           "messages": "Thu hồi tin nhắn thành công."

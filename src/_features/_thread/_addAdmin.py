@@ -1,16 +1,16 @@
 import requests, json
 from _core._utils import formAll, mainRequests, formatResults
 
-def func(dataFB, threadID, idUser, statusChoice=True):
-    dataForm = formAll(dataFB, requireGraphql=False)
-    dataForm["thread_fbid"] = str(threadID)
-    dataForm["admin_ids[0]"] = str(idUser)
-    dataForm["add"] = statusChoice
+def add_remove_admin(facebook_data, thread_id, user_id, add_admin=True):
+    form_data = formAll(facebook_data, requireGraphql=False)
+    form_data["thread_fbid"] = str(thread_id)
+    form_data["admin_ids[0]"] = str(user_id)
+    form_data["add"] = add_admin
 
-    sendRequests = json.loads(requests.post(**mainRequests("https://www.facebook.com/messaging/save_admins/?dpr=1", dataForm, dataFB["cookieFacebook"])).text.split("for (;;);")[1])
+    response = json.loads(requests.post(**mainRequests("https://www.facebook.com/messaging/save_admins/?dpr=1", form_data, facebook_data["cookieFacebook"])).text.split("for (;;);")[1])
 
-    if sendRequests.get("error"):
-        error = sendRequests["error"]
+    if response.get("error"):
+        error = response["error"]
         match error:
             case 1976004:
                 return formatResults("error", "Bạn không phải là quản trị viên.")

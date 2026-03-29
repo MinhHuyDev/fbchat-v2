@@ -34,7 +34,7 @@ class listeningEvent:
           self.syncToken = None
           self.lastSeqID = None
           self.dataFB = dataFB
-          self.fbt = _all_thread_data.func(dataFB)
+          self.fbt = _all_thread_data.get_all_thread_data(dataFB)
      
      
      def get_last_seq_id(self):
