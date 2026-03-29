@@ -2,50 +2,50 @@ import random, attr, requests, json
 # import __facebookToolsV2
 from _core._utils import str_base,  get_files_from_paths
 
-def func(filenames, dataFB):
+def upload_attachment(file_path, facebook_data):
 
-     
+
      USER_AGENTS = ["Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.90 Safari/537.36", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_3) AppleWebKit/601.1.10 (KHTML, like Gecko) Version/8.0.5 Safari/601.1.10", "Mozilla/5.0 (Windows NT 6.3; WOW64; ; NCT50_AAP285C84A1328) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.90 Safari/537.36", "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.1 (KHTML, like Gecko) Chrome/22.0.1207.1 Safari/537.1", "Mozilla/5.0 (X11; CrOS i686 2268.111.0) AppleWebKit/536.11 (KHTML, like Gecko) Chrome/20.0.1132.57 Safari/536.11", "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/536.6 (KHTML, like Gecko) Chrome/20.0.1092.0 Safari/536.6"]
-     
+
      headers = {
           "Referer": "https://www.facebook.com",
           "Accept": "text/html",
           "User-Agent": random.choice(USER_AGENTS),
-          "Cookie": dataFB["cookieFacebook"],
+          "Cookie": facebook_data["cookieFacebook"],
      }
-     
-     files = get_files_from_paths(filenames)
-     __reg = attr.ib(0).counter
-     __reg += 1
-     dataForm = {} 
-     dataForm["voice_clip"] = False
-     dataForm["__a"] = 1
-     dataForm["__req"] = str_base(__reg, 36) 
-     dataForm["fb_dtsg"] = dataFB["fb_dtsg"]
+
+     files = get_files_from_paths(file_path)
+     request_counter = attr.ib(0).counter
+     request_counter += 1
+     form_data = {}
+     form_data["voice_clip"] = False
+     form_data["__a"] = 1
+     form_data["__req"] = str_base(request_counter, 36)
+     form_data["fb_dtsg"] = facebook_data["fb_dtsg"]
 
      file_dict = {
-          "upload_{}".format(i): f for i, f in enumerate(files)
+          "upload_{}".format(index): file_data for index, file_data in enumerate(files)
      }
-     
-     resultRequests = requests.post("https://upload.facebook.com/ajax/mercury/upload.php", headers=headers, data=dataForm, files=file_dict).text
-     
-     try: 
-          resultRequests = json.loads(resultRequests.replace("for (;;);", ""))["payload"]
-     except: 
-          return print("ERROR-UPLOADED: " + str(resultRequests))
-     dataList = []
+
+     upload_response = requests.post("https://upload.facebook.com/ajax/mercury/upload.php", headers=headers, data=form_data, files=file_dict).text
+
      try:
-          for data in resultRequests["metadata"][0].values():
-               dataList.append(data)
+          upload_response = json.loads(upload_response.replace("for (;;);", ""))["payload"]
      except:
-          for data in resultRequests["metadata"]['0'].values():
-               dataList.append(data)
-     try: attachmentUrl = dataList[3]
-     except: attachmentUrl = None
+          return print("ERROR-UPLOADED: " + str(upload_response))
+     attachment_data_list = []
+     try:
+          for attachment_data in upload_response["metadata"][0].values():
+               attachment_data_list.append(attachment_data)
+     except:
+          for attachment_data in upload_response["metadata"]['0'].values():
+               attachment_data_list.append(attachment_data)
+     try: attachment_url = attachment_data_list[3]
+     except: attachment_url = None
      return {
-          "attachmentID": dataList[0],
-          "attachmentUrl": attachmentUrl,
-          "attachmentType": dataList[2],
+          "attachmentID": attachment_data_list[0],
+          "attachmentUrl": attachment_url,
+          "attachmentType": attachment_data_list[2],
           "attachmentDataSend": None# resultData
      }
 
