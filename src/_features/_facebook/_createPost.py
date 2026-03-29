@@ -1,16 +1,16 @@
 import json, requests, time, json, random
 from _core._utils import formAll, mainRequests
 
-def func(dataFB, newContents, attachmentID=None): # Tạo bài viết trên Facebook
-    
+def create_post(facebook_data, post_content, attachment_id=None): # Tạo bài viết trên Facebook
+
     # Được lấy dữ liệu và viết vào lúc: 09:40 Thứ 4, ngày 05/07/2023. Tác giả: MinhHuyDev
     """Args:
-        newContents: content of post to create (eg. MinhHuy create new post!) | typeInput: str
-        attachmentID: Coming soon....
+        post_content: content of post to create (eg. MinhHuy create new post!) | typeInput: str
+        attachment_id: Coming soon....
     """
-    
-    dataForm = formAll(dataFB, "ComposerStoryCreateMutation", 6534257523262244)
-    dataForm["variables"] = json.dumps(
+
+    form_data = formAll(facebook_data, "ComposerStoryCreateMutation", 6534257523262244)
+    form_data["variables"] = json.dumps(
         {
             "input": {
                     "composer_entry_point": "inline_composer",
@@ -27,20 +27,20 @@ def func(dataFB, newContents, attachmentID=None): # Tạo bài viết trên Face
                     },
                     "message": {
                         "ranges": [],
-                        "text": newContents
+                        "text": post_content
                     },
                     "with_tags_ids": [],
                     "inline_activities": [],
                     "explicit_place_id": "0",
                     "text_format_preset_id": "0",
                     "logging": {
-                        "composer_session_id": dataFB["sessionID"]
+                        "composer_session_id": facebook_data["sessionID"]
                     },
                     "navigation_data": {
-                        "attribution_id_v2": f"ProfileCometTimelineListViewRoot.react,comet.profile.timeline.list,tap_bookmark,{int(time.time() * 1000)},{dataFB['jazoest']},{dataFB['FacebookID']}"
+                        "attribution_id_v2": f"ProfileCometTimelineListViewRoot.react,comet.profile.timeline.list,tap_bookmark,{int(time.time() * 1000)},{facebook_data['jazoest']},{facebook_data['FacebookID']}"
                     },
                     "tracking": "[null]",
-                    "actor_id": dataFB["FacebookID"],
+                    "actor_id": facebook_data["FacebookID"],
                     "client_mutation_id": "1"
             },
             "displayCommentsFeedbackContext": None,
@@ -74,17 +74,17 @@ def func(dataFB, newContents, attachmentID=None): # Tạo bài viết trên Face
             "__relay_internal__pv__StoriesRingrelayprovider":False
         }
     )
-                    
-    sendRequests = json.loads(requests.post(**mainRequests("https://www.facebook.com/api/graphql/", dataForm, dataFB["cookieFacebook"])).text)
-    
-    if (sendRequests.get("data")):
+
+    response = json.loads(requests.post(**mainRequests("https://www.facebook.com/api/graphql/", form_data, facebook_data["cookieFacebook"])).text)
+
+    if (response.get("data")):
         return {
             "success": 1,
             "messages": "Tạo bài viết thành công!",
-            "urlPost": sendRequests["data"]["story_create"]["story"]["url"]
+            "urlPost": response["data"]["story_create"]["story"]["url"]
         }
     else:
         return {
             "error": 1,
-            "messages": sendRequests["errors"][0]["message"]
+            "messages": response["errors"][0]["message"]
         }

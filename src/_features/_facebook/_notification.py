@@ -1,36 +1,36 @@
 import requests, json
 from _core._utils import formAll, mainRequests
 
-def func(dataFB): # Lấy thông báo Facebook
-    
+def get_notifications(facebook_data): # Lấy thông báo Facebook
+
     # Được lấy dữ liệu và viết vào lúc: 02:32 Thứ 5, ngày 06/07/2023. Tác giả: MinhHuyDev
-    
-    dataForm = formAll(dataFB, "CometNotificationsDropdownQuery", 6770067089747450)
-    dataForm["variables"] = json.dumps(
+
+    form_data = formAll(facebook_data, "CometNotificationsDropdownQuery", 6770067089747450)
+    form_data["variables"] = json.dumps(
         {
             "count":15,
             "environment":"MAIN_SURFACE",
             "scale":3
         }
     )
-    
-    listNotificationResults = []
-    
-    sendRequests = json.loads(requests.post(**mainRequests("https://www.facebook.com/api/graphql/", dataForm, dataFB["cookieFacebook"])).text)
-    
+
+    notification_results_list = []
+
+    response = json.loads(requests.post(**mainRequests("https://www.facebook.com/api/graphql/", form_data, facebook_data["cookieFacebook"])).text)
+
     try:
-        getDataResultNotificationFacebook = sendRequests["data"]["viewer"]["notifications_page"]["edges"]
-        for dataResults, sttCount in zip(getDataResultNotificationFacebook, range(1, len(getDataResultNotificationFacebook) + 1)):
+        notification_data = response["data"]["viewer"]["notifications_page"]["edges"]
+        for notification_item, count in zip(notification_data, range(1, len(notification_data) + 1)):
             try:
-                    listNotificationResults.append(str(sttCount) + "." + dataResults["node"]["notif"]["body"]["text"])
+                    notification_results_list.append(str(count) + "." + notification_item["node"]["notif"]["body"]["text"])
             except:
                     pass
-    except Exception as errLog:
+    except Exception as error_log:
         return {
             "error": 1,
-            "messages": "ERR: " + str(errLog)
+            "messages": "ERR: " + str(error_log)
         }
     return {
         "success": 1,
-        "NotificationResults": listNotificationResults
+        "NotificationResults": notification_results_list
     }

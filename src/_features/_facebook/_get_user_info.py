@@ -1,49 +1,49 @@
 import json, requests, json
 from _core._utils import parse_cookie_string, Headers, formAll
 
-def func(dataFB, userID):
-     
-     dataForm = formAll(dataFB, requireGraphql=False)
-     dataForm["ids[0]"] = userID
+def get_user_info(facebook_data, user_id):
+
+     form_data = formAll(facebook_data, requireGraphql=False)
+     form_data["ids[0]"] = user_id
 
 
-     mainRequests = {
-        "headers": Headers(dataFB["cookieFacebook"], dataForm),
+     request_params = {
+        "headers": Headers(facebook_data["cookieFacebook"], form_data),
         "timeout": 5,
         "url": "https://www.facebook.com/chat/user_info/",
-        "data": dataForm,
-        "cookies": parse_cookie_string(dataFB["cookieFacebook"]),
+        "data": form_data,
+        "cookies": parse_cookie_string(facebook_data["cookieFacebook"]),
         "verify": True
     }
-     
-     sendRequests = requests.post(**mainRequests)
-     try:
-        jsonData = json.loads(sendRequests.text.split("for (;;);")[1])["payload"]["profiles"][str(userID)]
-        
-        idUser = jsonData.get("id")
-        nameUser = jsonData.get("name")
-        firstName = jsonData.get("firstName")
-        Username = jsonData.get("vanity")
-        thumbSrc = jsonData.get("thumnSrc")
-        urlProfile = jsonData.get("uri")
-        genderUser = jsonData.get("gender")
-        alternateName = jsonData.get("alternateName")
-        chatWithUSerIsNonFriend = jsonData.get("is_nonfriend_messenger_contact")
 
-        if (genderUser == 1): genderUser = "Female (Nữ)"
-        elif (genderUser == 2): genderUser = "Male (Nam)"
-        else: genderUser = "Unknown (Không xác định)"
+     response = requests.post(**request_params)
+     try:
+        json_data = json.loads(response.text.split("for (;;);")[1])["payload"]["profiles"][str(user_id)]
+
+        user_id_value = json_data.get("id")
+        user_name = json_data.get("name")
+        first_name = json_data.get("firstName")
+        username = json_data.get("vanity")
+        thumbnail_src = json_data.get("thumnSrc")
+        profile_url = json_data.get("uri")
+        user_gender = json_data.get("gender")
+        alternate_name = json_data.get("alternateName")
+        chat_with_user_is_non_friend = json_data.get("is_nonfriend_messenger_contact")
+
+        if (user_gender == 1): user_gender = "Female (Nữ)"
+        elif (user_gender == 2): user_gender = "Male (Nam)"
+        else: user_gender = "Unknown (Không xác định)"
 
         return {
-            "idUser": idUser,
-            "nameUser": nameUser,
-            "firstName": firstName,
-            "Username": Username,
-            "thumbSrc": thumbSrc,
-            "urlProfile": urlProfile,
-            "genderUser": genderUser,
-            "alternateName": alternateName,
-            "chatWithUSerIsNonFriend": chatWithUSerIsNonFriend
+            "idUser": user_id_value,
+            "nameUser": user_name,
+            "firstName": first_name,
+            "Username": username,
+            "thumbSrc": thumbnail_src,
+            "urlProfile": profile_url,
+            "genderUser": user_gender,
+            "alternateName": alternate_name,
+            "chatWithUSerIsNonFriend": chat_with_user_is_non_friend
         }
      except:
           return {
@@ -54,21 +54,21 @@ def func(dataFB, userID):
 """ Hướng dẫn sử dụng (Tutorial)
 
  * Dữ liệu yêu cầu (args):
- 
+
      - dataFB: lấy từ __facebookToolsV2.dataGetHome(setCookies)
      - setCookies: Cookie account Facebook
      - userID: ID người dùng cần lấy thông tin
-     
+
 * Kết quả trả về:
-     
+
      - Khi lấy dữ liệu thành công:
 
         {'idUser': '1...', 'nameUser': 'Priscilla......', ........}
-     
+
      - Khi lấy dữ liệu thất bại:
 
         {'err': 0}
-     
+
      - Ghi chú: nếu không hiểu gì hãy ib tui nhé hehe.
 
 * Thông tin tác giả:

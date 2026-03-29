@@ -1,39 +1,39 @@
 import requests, json, random
 from _core._utils import parse_cookie_string, formAll, Headers
 
-def func(dataFB, newName, newUsername): # Tạo một trang cá nhân khác trên chinh tài khoản Facebook
-    
+def create_additional_profile(facebook_data, profile_name, profile_username): # Tạo một trang cá nhân khác trên chinh tài khoản Facebook
+
     # Được lấy dữ liệu và viết vào lúc: 01:14 Thứ 5, ngày 06/07/2023. Tác giả: MinhHuyDev
 
-    dataForm = formAll(dataFB, "AdditionalProfileCreateMutation", 4699419010168408)
-    dataForm["variables"] = json.dumps(
+    form_data = formAll(facebook_data, "AdditionalProfileCreateMutation", 4699419010168408)
+    form_data["variables"] = json.dumps(
         {
             "input": {
-                    "name": newName,
+                    "name": profile_name,
                     "source": "PROFILE_SWITCHER",
-                    "user_name": newUsername,
-                    "actor_id": dataFB["FacebookID"],
+                    "user_name": profile_username,
+                    "actor_id": facebook_data["FacebookID"],
                     "client_mutation_id": str(round(random.random() * 1024))
             }
         }
     )
-    
-    mainRequests = {
-        "headers": Headers(dataFB["cookieFacebook"], dataForm),
+
+    request_params = {
+        "headers": Headers(facebook_data["cookieFacebook"], form_data),
         "timeout": 60000,
         "url": "https://www.facebook.com/api/graphql/",
-        "data": dataForm,
-        "cookies": parse_cookie_string(dataFB["cookieFacebook"]),
+        "data": form_data,
+        "cookies": parse_cookie_string(facebook_data["cookieFacebook"]),
         "verify": True
     }
-    
-    sendRequests = json.loads(requests.post(**mainRequests).text)
-    
-    if (sendRequests.get("data")):
-        if (sendRequests.get("data").get("additional_profile_create").get("error_message")):
+
+    response = json.loads(requests.post(**request_params).text)
+
+    if (response.get("data")):
+        if (response.get("data").get("additional_profile_create").get("error_message")):
             return {
                     "error": 1,
-                    "message": sendRequests["data"]["additional_profile_create"]["error_message"]
+                    "message": response["data"]["additional_profile_create"]["error_message"]
             }
         else:
             return {
@@ -43,5 +43,5 @@ def func(dataFB, newName, newUsername): # Tạo một trang cá nhân khác trê
     else:
         return {
             "error": 1,
-            "messages": sendRequests["errors"][0]["message"]
+            "messages": response["errors"][0]["message"]
         }
