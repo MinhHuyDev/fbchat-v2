@@ -37,9 +37,11 @@ def parse_cookie_string(cookie_string):
      cookie_dict = {}
      for cookie in cookie_string.split(";"):
           cookie = cookie.strip()
-          if not cookie or "=" not in cookie:
+          if not cookie:
                continue
-          key, value = cookie.split("=", 1)
+          key, sep, value = cookie.partition("=")
+          if not sep:
+               continue
           key = key.strip()
           if not key:
                continue

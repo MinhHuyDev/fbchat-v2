@@ -43,7 +43,7 @@ def func(filenames, dataFB):
                for data in resultRequests["metadata"]['0'].values():
                     dataList.append(data)
           except (KeyError, TypeError):
-               return print("ERROR-UPLOADED: " + str(resultRequests))
+               return print("ERROR-UPLOADED (metadata fallback failed): " + str(resultRequests))
      try: attachmentUrl = dataList[3]
      except IndexError: attachmentUrl = None
      return {
