@@ -58,7 +58,10 @@ def features(dataGet, threadID, commandUse):
     try:
         getData = json.loads(dataGet)["o0"]["data"]["viewer"]["message_threads"]["nodes"]
     except (KeyError, TypeError, json.JSONDecodeError):
-        return json.loads(dataGet)["o0"]["errors"][0]["summary"]
+        try:
+            return json.loads(dataGet)["o0"]["errors"][0]["summary"]
+        except (KeyError, TypeError, json.JSONDecodeError):
+            return "Không thể xử lý dữ liệu ThreadList."
     for getNeedIDThread in getData:
         if (str(getNeedIDThread["thread_key"]["thread_fbid"]) == str(threadID)):
             dataThread = getNeedIDThread
