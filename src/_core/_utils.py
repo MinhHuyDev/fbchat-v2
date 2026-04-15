@@ -1,5 +1,4 @@
 import attr, re, json, random, string, time
-from os.path import basename
 from mimetypes import guess_type 
 
 def Headers(dataForm=None, Host='www.facebook.com'):
@@ -36,15 +35,15 @@ def str_base(number, base):
 
 def parse_cookie_string(cookie_string):
      cookie_dict = {}
-     cookies = cookie_string.split(";")
-
-     for cookie in cookies:
-          if "=" in cookie:
-               key, value = cookie.split("=")
-          else:
-               pass
-          try: cookie_dict[key] = value
-          except: pass
+     for cookie in cookie_string.split(";"):
+          cookie = cookie.strip()
+          if not cookie or "=" not in cookie:
+               continue
+          key, value = cookie.split("=", 1)
+          key = key.strip()
+          if not key:
+               continue
+          cookie_dict[key] = value.strip()
 
      return cookie_dict
 
@@ -57,30 +56,22 @@ def dataSplit(string1, string2, numberSplit1=None, numberSplit2=None, HTML=None,
      
 def formAll(dataFB, FBApiReqFriendlyName=None, docID=None, requireGraphql=None):
      __reg = attr.ib(0).counter
-     _revision = attr.ib()
      __reg += 1 
-     dataForm = {}
+     dataForm = {
+          "fb_dtsg": dataFB["fb_dtsg"],
+          "jazoest": dataFB["jazoest"],
+          "__a": 1,
+          "__user": str(dataFB["FacebookID"]),
+          "__req": str_base(__reg, 36),
+          "__rev": dataFB["clientRevision"],
+          "av": dataFB["FacebookID"],
+     }
      
      if (requireGraphql == None):
-          dataForm["fb_dtsg"] = dataFB["fb_dtsg"]
-          dataForm["jazoest"] = dataFB["jazoest"]
-          dataForm["__a"] = 1
-          dataForm["__user"] =str(dataFB["FacebookID"])
-          dataForm["__req"] = str_base(__reg, 36) 
-          dataForm["__rev"] = dataFB["clientRevision"]
-          dataForm["av"] = dataFB["FacebookID"]
           dataForm["fb_api_caller_class"] = "RelayModern"
           dataForm["fb_api_req_friendly_name"] = FBApiReqFriendlyName
           dataForm["server_timestamps"] = "true"
           dataForm["doc_id"] = str(docID)
-     else:
-          dataForm["fb_dtsg"] = dataFB["fb_dtsg"]
-          dataForm["jazoest"] = dataFB["jazoest"]
-          dataForm["__a"] = 1
-          dataForm["__user"] =str(dataFB["FacebookID"])
-          dataForm["__req"] = str_base(__reg, 36) 
-          dataForm["__rev"] = dataFB["clientRevision"]
-          dataForm["av"] = dataFB["FacebookID"]
 
      return dataForm
      

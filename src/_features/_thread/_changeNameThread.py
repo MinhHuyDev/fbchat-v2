@@ -1,5 +1,4 @@
 import json, requests, time, random
-from unittest import case
 from _core._utils import formAll, mainRequests, formatResults
 
 def func(dataFB, threadID, newNameThread): # Thay đổi tên nhóm

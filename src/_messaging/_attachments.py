@@ -1,4 +1,5 @@
 import random, attr, requests, json
+from json import JSONDecodeError
 # import __facebookToolsV2
 from _core._utils import str_base,  get_files_from_paths
 
@@ -31,17 +32,17 @@ def func(filenames, dataFB):
      
      try: 
           resultRequests = json.loads(resultRequests.replace("for (;;);", ""))["payload"]
-     except: 
-          return print("ERROR-UPLOADED: " + str(resultRequests))
+     except (JSONDecodeError, KeyError, TypeError): 
+           return print("ERROR-UPLOADED: " + str(resultRequests))
      dataList = []
      try:
           for data in resultRequests["metadata"][0].values():
                dataList.append(data)
-     except:
-          for data in resultRequests["metadata"]['0'].values():
-               dataList.append(data)
+     except (KeyError, TypeError):
+           for data in resultRequests["metadata"]['0'].values():
+                dataList.append(data)
      try: attachmentUrl = dataList[3]
-     except: attachmentUrl = None
+     except IndexError: attachmentUrl = None
      return {
           "attachmentID": dataList[0],
           "attachmentUrl": attachmentUrl,

@@ -1,4 +1,4 @@
-import json, requests, json
+import json, requests
 from _core._utils import parse_cookie_string, Headers, formAll
 
 def func(dataFB, userID):
@@ -45,7 +45,7 @@ def func(dataFB, userID):
             "alternateName": alternateName,
             "chatWithUSerIsNonFriend": chatWithUSerIsNonFriend
         }
-     except:
+     except (IndexError, KeyError, TypeError, json.JSONDecodeError):
           return {
                "err": 0
           }
