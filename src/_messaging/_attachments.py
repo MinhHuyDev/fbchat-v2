@@ -33,7 +33,8 @@ def func(filenames, dataFB):
      try: 
           resultRequests = json.loads(resultRequests.replace("for (;;);", ""))["payload"]
      except (JSONDecodeError, KeyError, TypeError): 
-           return print("ERROR-UPLOADED: " + str(resultRequests))
+           print("ERROR-UPLOADED: " + str(resultRequests))
+           return None
      dataList = []
      try:
           for data in resultRequests["metadata"][0].values():
@@ -43,7 +44,8 @@ def func(filenames, dataFB):
                for data in resultRequests["metadata"]['0'].values():
                     dataList.append(data)
           except (KeyError, TypeError):
-               return print("ERROR-UPLOADED (metadata fallback failed): " + str(resultRequests))
+               print("ERROR-UPLOADED (metadata fallback failed): " + str(resultRequests))
+               return None
      try: attachmentUrl = dataList[3]
      except IndexError: attachmentUrl = None
      return {
