@@ -135,7 +135,7 @@ class listeningEvent:
                                         self.bodyResults["attachments"]["id"] = _["attachments"][0]["fbid"]
                                         self.bodyResults["attachments"]["url"] = _["attachments"][0]["mercury"]["blob_attachment"]["preview"]["uri"]
                                    except (KeyError, TypeError, IndexError):   
-                                         self.bodyResults["attachments"]["id"] = "This is image_url!?"
+                                        self.bodyResults["attachments"]["id"] = "Unable to retrieve attachment ID"
                     if "syncToken" in j and "firstDeltaSeqId" in j:
                          self.syncToken = j["syncToken"]
                          self.lastSeqID = j["firstDeltaSeqId"]
