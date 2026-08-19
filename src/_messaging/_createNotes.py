@@ -111,7 +111,7 @@ def _post_graphql(
     request_args = _build_graphql_request(dataFB, friendly_name, doc_id, variables)
     request_args["timeout"] = timeout
 
-    last_error = None
+    last_error: httpx.HTTPError | None = None
     for attempt in range(retries + 1):
         try:
             response = send_request(request_args)
@@ -155,7 +155,7 @@ async def _post_graphql_async(
     request_args = _build_graphql_request(dataFB, friendly_name, doc_id, variables)
     request_args["timeout"] = timeout
 
-    last_error = None
+    last_error: httpx.HTTPError | None = None
     for attempt in range(retries + 1):
         try:
             response = await send_request_async(request_args)

@@ -242,6 +242,7 @@ def _upload_blocking(
     include_error: bool = False,
 ) -> dict[str, Any] | None:
     request = _build_request(filenames, dataFB)
+    response: httpx.Response | requests.Response
     try:
         if client is not None:
             response = client.post(**request)
