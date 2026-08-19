@@ -3,6 +3,7 @@ import json
 import os
 import stat
 import subprocess
+import time
 from pathlib import Path
 from typing import Any
 
@@ -180,6 +181,76 @@ def test_resolve_binary_replaces_tampered_managed_cache(
     assert e2ee._resolve_binary() == target
     assert target.read_bytes() == replacement
     assert expected == hashlib.sha256(target.read_bytes()).hexdigest()
+
+
+def test_resolve_binary_rejects_stale_source_build(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    target = tmp_path / "bridge.exe"
+    target.write_bytes(b"old build")
+    monkeypatch.delenv("FBCHAT_E2EE_BIN", raising=False)
+    monkeypatch.setattr(e2ee, "_default_binary_path", lambda: target)
+    monkeypatch.setattr(e2ee, "_is_source_checkout", lambda: True)
+    monkeypatch.setattr(e2ee, "_source_bridge_is_stale", lambda path: True)
+
+    with pytest.raises(RuntimeError, match="cũ hơn mã nguồn"):
+        e2ee._resolve_binary()
+
+
+def test_source_bridge_freshness_compares_real_mtimes(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    target = tmp_path / "bridge.exe"
+    source = tmp_path / "events.go"
+    target.write_bytes(b"build")
+    source.write_text("package bridge", encoding="utf-8")
+    timestamp = time.time_ns()
+    os.utime(source, ns=(timestamp, timestamp))
+    os.utime(target, ns=(timestamp + 1_000_000, timestamp + 1_000_000))
+    monkeypatch.setattr(e2ee, "_source_bridge_inputs", lambda: [source])
+
+    assert e2ee._source_bridge_is_stale(target) is False
+
+    os.utime(source, ns=(timestamp + 2_000_000, timestamp + 2_000_000))
+    assert e2ee._source_bridge_is_stale(target) is True
+
+
+def test_source_bridge_freshness_fails_closed_without_inputs(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    target = tmp_path / "bridge.exe"
+    target.write_bytes(b"build")
+    monkeypatch.setattr(e2ee, "_source_bridge_inputs", lambda: [])
+
+    assert e2ee._source_bridge_is_stale(target) is True
+
+
+def test_resolve_binary_accepts_fresh_source_build(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    target = tmp_path / "bridge.exe"
+    target.write_bytes(b"fresh build")
+    monkeypatch.delenv("FBCHAT_E2EE_BIN", raising=False)
+    monkeypatch.setattr(e2ee, "_default_binary_path", lambda: target)
+    monkeypatch.setattr(e2ee, "_is_source_checkout", lambda: True)
+    monkeypatch.setattr(e2ee, "_source_bridge_is_stale", lambda path: False)
+
+    assert e2ee._resolve_binary() == target
+
+
+def test_resolve_binary_explicit_override_bypasses_source_freshness(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    target = tmp_path / "custom-bridge.exe"
+    target.write_bytes(b"operator-selected build")
+    monkeypatch.setenv("FBCHAT_E2EE_BIN", str(target))
+    monkeypatch.setattr(
+        e2ee,
+        "_source_bridge_is_stale",
+        lambda path: (_ for _ in ()).throw(AssertionError("freshness check ran")),
+    )
+
+    assert e2ee._resolve_binary() == target
 
 
 def test_create_private_config_is_exclusive_and_private(tmp_path: Path) -> None:

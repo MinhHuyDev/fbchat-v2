@@ -70,6 +70,19 @@ _TRUSTED_DOWNLOAD_HOSTS = {
     "objects.githubusercontent.com",
     "release-assets.githubusercontent.com",
 }
+_SOURCE_BRIDGE_MODULE_FILES = (
+    "go.mod",
+    "go.sum",
+    "meta/go.mod",
+    "meta/go.sum",
+)
+_SOURCE_BRIDGE_EMBED_PATTERNS = (
+    "meta/pkg/metadb/*.sql",
+    "meta/pkg/connector/example-config.yaml",
+    "meta/pkg/messagix/bloks/minify.json",
+    "meta/pkg/messagix/bloks/debug_captcha.png",
+    "meta/pkg/messagix/bloks/debug_captcha.ogg",
+)
 
 
 def _binary_name() -> str:
@@ -97,6 +110,39 @@ def _default_binary_path() -> Path:
 
 def _is_source_checkout() -> bool:
     return (Path(__file__).resolve().parents[2] / "pyproject.toml").is_file()
+
+
+def _source_bridge_inputs() -> list[Path]:
+    """Liệt kê source/asset có thể làm thay đổi bridge được build."""
+    bridge_root = Path(__file__).resolve().parents[2] / "bridge-e2ee"
+    inputs = {
+        path
+        for path in bridge_root.rglob("*.go")
+        if path.is_file() and not path.name.endswith("_test.go")
+    }
+    for relative_path in _SOURCE_BRIDGE_MODULE_FILES:
+        path = bridge_root / relative_path
+        if path.is_file():
+            inputs.add(path)
+    for pattern in _SOURCE_BRIDGE_EMBED_PATTERNS:
+        inputs.update(path for path in bridge_root.glob(pattern) if path.is_file())
+    return sorted(inputs)
+
+
+def _source_bridge_is_stale(binary: Path) -> bool:
+    """So mtime để chặn source checkout vô tình chạy build cũ."""
+    binary_mtime = binary.stat().st_mtime_ns
+    source_inputs = _source_bridge_inputs()
+    if not source_inputs:
+        return True
+    for source_path in source_inputs:
+        try:
+            if source_path.stat().st_mtime_ns > binary_mtime:
+                return True
+        except FileNotFoundError:
+            # File bị đổi/xóa đồng thời; coi build là cũ để fail closed.
+            return True
+    return False
 
 
 def _release_version_and_digest(binary_name: str) -> tuple[str, str]:
@@ -313,7 +359,18 @@ def _download_bridge(target_path: Path) -> None:
 def _resolve_binary() -> Path:
     override = os.environ.get("FBCHAT_E2EE_BIN")
     candidate = Path(override) if override else _default_binary_path()
-    if candidate.exists() and not override and not _is_source_checkout():
+    source_checkout = _is_source_checkout()
+    if (
+        candidate.exists()
+        and not override
+        and source_checkout
+        and _source_bridge_is_stale(candidate)
+    ):
+        raise RuntimeError(
+            f"Bridge E2EE tại {candidate} cũ hơn mã nguồn. Dừng bot và build lại: "
+            f"cd bridge-e2ee && go build -trimpath -o ../build/{candidate.name} ."
+        )
+    if candidate.exists() and not override and not source_checkout:
         try:
             _verify_managed_binary(candidate)
         except Exception as error:

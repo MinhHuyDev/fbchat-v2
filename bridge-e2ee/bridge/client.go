@@ -34,6 +34,18 @@ import (
 	"go.mau.fi/mautrix-meta/pkg/messagix/types"
 )
 
+type messageEventSource uint8
+
+const (
+	messageEventSourceInsert messageEventSource = iota + 1
+	messageEventSourceStandaloneUpsert
+)
+
+type recentMessageEvent struct {
+	emittedAt int64
+	source    messageEventSource
+}
+
 // Client wraps the messagix client and e2ee client
 type Client struct {
 	ID          uint64
@@ -57,6 +69,10 @@ type Client struct {
 	threadCache         map[int64]*Thread
 	recentUnreactions   map[string]int64 // key: messageId+actorId, value: timestamp
 	recentUnreactionsMu sync.RWMutex
+	recentMessages      map[string]recentMessageEvent
+	recentMessagesMu    sync.Mutex
+	recentMessageSweep  int64
+	liveMessageCutoffMs int64
 }
 
 // ClientConfig for creating a new client
@@ -150,6 +166,7 @@ func NewClient(cfg *ClientConfig) (*Client, error) {
 		cancel:            cancel,
 		threadCache:       make(map[int64]*Thread),
 		recentUnreactions: make(map[string]int64),
+		recentMessages:    make(map[string]recentMessageEvent),
 	}
 
 	// Set callback for device data changes (only when using deviceData mode)
@@ -174,6 +191,9 @@ func (c *Client) Connect() (*UserInfo, *InitialData, error) {
 	if err := c.lifecycleError(); err != nil {
 		return nil, nil, err
 	}
+	// Mở cửa sổ trước page load để không làm rơi message được gửi trong lúc
+	// bootstrap; cutoff zero-grace vẫn loại mọi message có trước Connect().
+	c.openRealtimeMessageWindow(0)
 
 	// Load messages page
 	currentUser, initialTable, err := c.Messagix.LoadMessagesPage(c.ctx)
@@ -248,6 +268,10 @@ func (c *Client) ConnectE2EE() error {
 		return err
 	}
 
+	// Register before connecting: ConnectContext may synchronously deliver queued
+	// messages, so registering afterwards creates a message-loss window.
+	e2eeClient.AddEventHandler(c.handleE2EEEvent)
+
 	// Connect E2EE
 	if err := e2eeClient.ConnectContext(c.ctx); err != nil {
 		return err
@@ -256,9 +280,6 @@ func (c *Client) ConnectE2EE() error {
 		e2eeClient.Disconnect()
 		return err
 	}
-
-	// Add E2EE event handler
-	e2eeClient.AddEventHandler(c.handleE2EEEvent)
 
 	return nil
 }
