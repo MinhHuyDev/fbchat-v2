@@ -775,6 +775,12 @@ func (c *Client) emitEvent(eventType EventType, data interface{}) {
 		Timestamp: timeNowMs(),
 	}
 
+	c.eventMu.RLock()
+	defer c.eventMu.RUnlock()
+	if c.eventsClosed {
+		return
+	}
+
 	select {
 	case c.eventChan <- event:
 	case <-c.ctx.Done():

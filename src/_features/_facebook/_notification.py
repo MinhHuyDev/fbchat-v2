@@ -55,7 +55,6 @@ def _parse_response(payload: dict[str, Any]) -> dict[str, Any]:
     return {"success": 1, "NotificationResults": results}
 
 
-
 async def func(
     dataFB: dict[str, Any],
     *,

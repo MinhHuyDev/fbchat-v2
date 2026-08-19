@@ -7,13 +7,67 @@ on:
   workflow_dispatch:
     inputs:
       tag_name:
-        description: 'Existing release tag to rebuild/upload assets for'
+        description: 'Existing release tag to build missing assets for (never overwrite)'
         required: true
-        default: 'v2.2.0'
+        default: 'v2.2.2'
 
 jobs:
+  resolve-release:
+    name: Validate release tag and package version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+    steps:
+      - name: Resolve and validate release tag
+        id: release
+        shell: bash
+        env:
+          RELEASE_EVENT: ${{ github.event_name }}
+          RELEASE_INPUT_TAG: ${{ inputs.tag_name }}
+          RELEASE_REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [[ "$RELEASE_EVENT" == "workflow_dispatch" ]]; then
+            tag="$RELEASE_INPUT_TAG"
+          else
+            tag="$RELEASE_REF_NAME"
+          fi
+          if [[ ! "$tag" =~ ^v[0-9A-Za-z][0-9A-Za-z._+-]*$ ]]; then
+            echo "Invalid release tag: $tag" >&2
+            exit 1
+          fi
+          printf 'tag=%s\n' "$tag" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.release.outputs.tag }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Match tag to package version
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          python - <<'PY'
+          import os
+          import tomllib
+          from pathlib import Path
+
+          project = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+          expected_tag = f"v{project['project']['version']}"
+          if os.environ["RELEASE_TAG"] != expected_tag:
+              raise SystemExit(
+                  f"Release tag {os.environ['RELEASE_TAG']!r} does not match {expected_tag!r}"
+              )
+          PY
+
   build-go-binaries:
     name: Build E2EE bridge (${{ matrix.goos }}-${{ matrix.goarch }})
+    needs: resolve-release
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -24,22 +78,13 @@ jobs:
           - goos: windows
             goarch: arm64
     permissions:
+      attestations: write
       contents: read
+      id-token: write
     steps:
-      - name: Resolve release ref
-        id: release
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "ref=${{ inputs.tag_name }}" >> "$GITHUB_OUTPUT"
-            echo "tag=${{ inputs.tag_name }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "ref=${{ github.ref }}" >> "$GITHUB_OUTPUT"
-            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
-          fi
-
       - uses: actions/checkout@v4
         with:
-          ref: ${{ steps.release.outputs.ref }}
+          ref: ${{ needs.resolve-release.outputs.tag }}
           submodules: recursive
 
       - name: Set up Go
@@ -62,6 +107,11 @@ jobs:
           fi
           go build -trimpath -ldflags="-s -w" -o "../build/${output_name}" .
 
+      - name: Attest bridge provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: build/fbchat-bridge-e2ee-*
+
       - name: Upload bridge artifact
         uses: actions/upload-artifact@v4
         with:
@@ -71,25 +121,14 @@ jobs:
 
   upload-github-release-assets:
     name: Upload GitHub Release assets
-    needs: build-go-binaries
+    needs: [resolve-release, build-go-binaries]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Resolve release ref
-        id: release
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "ref=${{ inputs.tag_name }}" >> "$GITHUB_OUTPUT"
-            echo "tag=${{ inputs.tag_name }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "ref=${{ github.ref }}" >> "$GITHUB_OUTPUT"
-            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
-          fi
-
       - uses: actions/checkout@v4
         with:
-          ref: ${{ steps.release.outputs.ref }}
+          ref: ${{ needs.resolve-release.outputs.tag }}
 
       - name: Download bridge artifacts
         uses: actions/download-artifact@v4
@@ -98,17 +137,24 @@ jobs:
           pattern: fbchat-bridge-e2ee-*
           merge-multiple: true
 
+      - name: Generate SHA-256 manifest
+        run: |
+          cd all-binaries
+          sha256sum fbchat-bridge-e2ee-* > SHA256SUMS
+
       - name: Upload assets to release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.release.outputs.tag }}
+          tag_name: ${{ needs.resolve-release.outputs.tag }}
           files: all-binaries/*
-          body_path: .github/RELEASE_NOTES_${{ steps.release.outputs.tag }}.md
+          body_path: .github/RELEASE_NOTES_${{ needs.resolve-release.outputs.tag }}.md
           fail_on_unmatched_files: true
+          overwrite_files: false
 
   publish-pypi:
     name: Publish Python package to PyPI
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    needs: upload-github-release-assets
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -125,6 +171,55 @@ jobs:
 
       - name: Install hatch
         run: python -m pip install --upgrade hatch
+
+      - name: Download attested bridge artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-binaries
+          pattern: fbchat-bridge-e2ee-*
+          merge-multiple: true
+
+      - name: Bind bridge checksums to the Python package
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          import tomllib
+          from pathlib import Path
+
+          project = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+          version = project["project"]["version"]
+          expected_tag = f"v{version}"
+          if os.environ["RELEASE_TAG"] != expected_tag:
+              raise SystemExit(
+                  f"Release tag {os.environ['RELEASE_TAG']!r} does not match package {expected_tag!r}"
+              )
+
+          assets = sorted(Path("all-binaries").glob("fbchat-bridge-e2ee-*"))
+          if len(assets) != 5 or any(not asset.is_file() for asset in assets):
+              raise SystemExit(f"Expected 5 bridge binaries, found {len(assets)}")
+
+          def sha256_file(path: Path) -> str:
+              digest = hashlib.sha256()
+              with path.open("rb") as handle:
+                  for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                      digest.update(chunk)
+              return digest.hexdigest()
+
+          digests = {
+              asset.name: sha256_file(asset)
+              for asset in assets
+          }
+          module = (
+              '"""Generated by the release workflow; do not edit in a built wheel."""\n\n'
+              f"BRIDGE_RELEASE_VERSION: str | None = {version!r}\n"
+              f"BRIDGE_SHA256: dict[str, str] = {json.dumps(digests, indent=4, sort_keys=True)}\n"
+          )
+          Path("src/_messaging/_bridge_checksums.py").write_text(module, encoding="utf-8")
+          PY
 
       - name: Build package
         run: hatch build

@@ -283,7 +283,9 @@ async def editMessage(
     newText: str,
     timeout: int = _DEFAULT_TIMEOUT,
 ) -> dict[str, Any]:
-    return await asyncio.to_thread(_editMessage_blocking, dataFB, messageID, newText, timeout)
+    return await asyncio.to_thread(
+        _editMessage_blocking, dataFB, messageID, newText, timeout
+    )
 
 
 async def func(

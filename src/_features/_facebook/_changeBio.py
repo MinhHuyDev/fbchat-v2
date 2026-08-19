@@ -67,7 +67,6 @@ def _parse_response(payload: dict[str, Any], new_contents: str) -> dict[str, Any
     }
 
 
-
 async def func(
     dataFB: dict[str, Any],
     newContents: str,

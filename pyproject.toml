@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "fbchat-v2"
-version = "2.2.0"
+version = "2.2.2"
 description = "Thư viện Python hiện đại cho Facebook Messenger API"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -24,15 +24,46 @@ Issues = "https://github.com/MinhHuyDev/fbchat-v2/issues"
 
 [project.optional-dependencies]
 dev = [
+    "build>=1.2.2",
     "pytest>=7.4.0",
     "pytest-asyncio",
     "black",
     "ruff",
-    "flake8"
+    "mypy>=1.11.0"
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ['src']
+packages = [
+    "src/_core",
+    "src/_features",
+    "src/_messaging",
+]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+
+[tool.ruff.lint]
+# Ruff bắt các lỗi parser/runtime-critical; Black chịu trách nhiệm định dạng.
+select = ["E9", "F"]
+
+[tool.black]
+target-version = ["py310"]
+line-length = 88
+
+[tool.mypy]
+python_version = "3.10"
+explicit_package_bases = true
+ignore_missing_imports = true
+warn_unused_configs = true
+files = [
+    "src/_core/__init__.py",
+    "src/_core/_permissions.py",
+    "src/_features/_facebook/__init__.py",
+    "src/_features/_thread/__init__.py",
+    "src/_messaging/__init__.py",
+    "scripts/verify_distribution.py",
+]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

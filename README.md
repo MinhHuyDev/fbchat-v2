@@ -7,7 +7,7 @@
 [![Status](https://img.shields.io/badge/status-active-22c55e)](https://github.com/MinhHuyDev/fbchat-v2)
 [![PyPI](https://img.shields.io/pypi/v/fbchat-v2?color=3775A9&logo=pypi&logoColor=white)](https://pypi.org/project/fbchat-v2/)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![Version](https://img.shields.io/badge/version-2.2.0-blue)](https://github.com/MinhHuyDev/fbchat-v2/releases)
+[![Version](https://img.shields.io/badge/version-2.2.2-blue)](https://github.com/MinhHuyDev/fbchat-v2/releases)
 [![Issues](https://img.shields.io/github/issues/MinhHuyDev/fbchat-v2?color=orange)](https://github.com/MinhHuyDev/fbchat-v2/issues)
 [![License](https://img.shields.io/badge/license-Xem%20LICENSE-lightgrey)](LICENSE)
 [![Telegram](https://img.shields.io/badge/Telegram-MinhHuyDev-26A5E4?logo=telegram&logoColor=white)](https://t.me/MinhHuyDev)
@@ -19,7 +19,7 @@
 ---
 
 > [!IMPORTANT]
-> Đây là phiên bản `v2.2.0` sử dụng *httpx.Client* thay vì *requests* như cũ và đã trang bị **async/await** nên systax code có thể bị thay đổi hoặc xung đột với bản của bạn đang dùng. Nếu bạn vẫn muốn dùng **requests** (*no async/await*), hãy bấm vào đây: [v2.1.4](https://github.com/m008v/fbchat-v2/tree/v2.1.4)
+> Đây là phiên bản `v2.2.2` sử dụng *httpx.Client* thay vì *requests* như cũ và đã trang bị **async/await** nên systax code có thể bị thay đổi hoặc xung đột với bản của bạn đang dùng. Nếu bạn vẫn muốn dùng **requests** (*no async/await*), hãy bấm vào đây: [v2.1.4](https://github.com/m008v/fbchat-v2/tree/v2.1.4)
 
 > [!WARNING]
 > **Tuyên bố miễn trừ trách nhiệm** - Đây **không** phải là sản phẩm chính thức của Facebook. Facebook đã có sẵn API chatbot chính thức [tại đây](https://developers.facebook.com/docs/messenger-platform/). `fbchat-v2` khác biệt ở chỗ nó xác thực bằng **tài khoản / cookie người dùng Facebook thực**, vốn tiềm ẩn rủi ro. Hãy cân nhắc kỹ trước khi sử dụng.
@@ -228,29 +228,25 @@ source .venv/bin/activate
 ### 3. Cài đặt phụ thuộc Python
 
 ```bash
-pip install --upgrade pip
-pip install -e .
+python -m pip install --upgrade pip
+python -m pip install -e .
 ```
 
 Kiểm tra nhanh:
 
 ```bash
-python -c "import requests, paho.mqtt.client, attr, pyotp; print('OK')"
+python -c "import _core, _features, _messaging; from _features._facebook import _unFriend; print('OK')"
 ```
 
-### 4. Cho phép import từ `src/`
+### 4. Xác minh package đã cài
 
-Khi chạy script ở thư mục gốc dự án, hãy expose `src/` để các module `_core`, `_features`, `_messaging` được import đúng:
+Editable install và wheel đều phải export `_core`, `_features`, `_messaging` trực tiếp:
 
 ```bash
-# Windows (PowerShell)
-$env:PYTHONPATH = "src"
-
-# macOS / Linux
-export PYTHONPATH=src
+python scripts/verify_distribution.py
 ```
 
-Hoặc bạn có thể import thủ công với prefix đầy đủ `src.`.
+Không cần đặt `PYTHONPATH=src` và không import bằng prefix `src.`.
 
 ### 5. *(Tuỳ chọn)* Build bridge E2EE - cho tin nhắn 1-1
 
@@ -353,6 +349,8 @@ Ví dụ:
   "admins": [
     "1000xxxxxxxxxx"
   ],
+  "log_message_content": false,
+  "debug_errors": false,
   "version": "0.0.1"
 }
 ```
@@ -362,10 +360,15 @@ Ví dụ:
 | `cookies` | Có | Cookie phiên Facebook dạng chuỗi |
 | `prefix` | Không | Tiền tố lệnh, mặc định `/` |
 | `admins` | Không | Danh sách Facebook ID được dùng lệnh quản trị |
+| `log_message_content` | Không | Cho phép ghi plaintext nội dung chat; mặc định `false` để bảo vệ riêng tư |
+| `debug_errors` | Không | In payload/traceback chi tiết; mặc định `false` |
 | `botName` | Không | Metadata cho config, bot mẫu hiện không dùng |
 | `version` | Không | Metadata cho config, bot mẫu hiện không dùng |
 
-`src/config.json` đã bị gitignore. Không dùng `config.example.json` để chứa cookie thật.
+`src/config.json` đã bị gitignore và bot sẽ siết quyền file về `0600` trên
+POSIX hoặc ACL riêng cho user hiện tại/SYSTEM trên Windows. Không dùng
+`config.example.json` để chứa cookie thật, và chỉ bật hai tùy chọn log trên khi
+đang debug trong môi trường kiểm soát.
 
 ---
 
@@ -595,11 +598,16 @@ pytest tests/ -v --tb=short
 Các gate nên chạy trước commit:
 
 ```bash
-python -m compileall -q src tests
-ruff check src tests
-ruff format --check src tests
+python -m compileall -q src tests scripts
+ruff check src tests scripts
+black --check src tests scripts
+mypy
+python -m build --wheel
+python scripts/verify_distribution.py dist/fbchat_v2-2.2.2-py3-none-any.whl
 git diff --check
 ```
+
+CI cài wheel và editable install vào hai virtual environment sạch trước khi chạy smoke test import.
 
 Với bridge:
 

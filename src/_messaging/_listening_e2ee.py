@@ -1,23 +1,4 @@
 """
-Đường dẫn file:
-  src/_messaging/_listening_e2ee.py
-
-Mục đích:
-  - Khởi tạo luồng lắng nghe tin nhắn mã hoá đầu cuối (E2EE).
-
-Cách hoạt động:
-  - Nạp dependency/guard cần thiết, thực hiện các async HTTP requests tới API nội bộ hoặc GraphQL của Facebook.
-  - Các thao tác request đều phải thông qua httpx.AsyncClient và module _core._utils để bảo đảm an toàn kết nối.
-  - Payload gửi đi/nhận về được xử lý JSON cẩn thận, bắt lỗi try-except đầy đủ để tránh crash hệ thống.
-
-File liên quan:
-  - src/main.py và các entrypoint khác.
-  - Phụ thuộc vào _core._session, _core._utils để khởi tạo và thao tác HTTP.
-
-Author: @m008v (MinhHuyDev)
-"""
-
-"""
 fbchat-v2 :: _listening_e2ee.py
 ================================
 
@@ -59,98 +40,226 @@ import hmac
 import itertools
 import json
 import os
+import re
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 from pathlib import Path
 from queue import Empty, Queue
 from typing import Any, Callable, Optional
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 import httpx
 
+from _core import __version__ as _PACKAGE_VERSION
 from _core._utils import parse_cookie_string
+from _messaging._bridge_checksums import BRIDGE_RELEASE_VERSION, BRIDGE_SHA256
 
 # ---------------------------------------------------------------------------
 # Binary discovery
 # ---------------------------------------------------------------------------
 
 
-def _default_binary_path() -> Path:
+_MAX_BRIDGE_SIZE = 200 * 1024 * 1024
+_RELEASE_VERSION_PATTERN = re.compile(r"[0-9A-Za-z][0-9A-Za-z._+-]*")
+_TRUSTED_DOWNLOAD_HOSTS = {
+    "api.github.com",
+    "github.com",
+    "objects.githubusercontent.com",
+    "release-assets.githubusercontent.com",
+}
+
+
+def _binary_name() -> str:
     name = (
         "fbchat-bridge-e2ee.exe"
         if sys.platform.startswith("win")
         else "fbchat-bridge-e2ee"
     )
+    return name
+
+
+def _default_binary_path() -> Path:
+    name = _binary_name()
     here = Path(__file__).resolve()
-    # fbchat-v2/src/_messaging/_listening_e2ee.py -> fbchat-v2/build/<name>
-    return here.parents[2] / "build" / name
+    project_root = here.parents[2]
+    if _is_source_checkout():
+        return project_root / "build" / name
+
+    if sys.platform.startswith("win"):
+        cache_root = Path(os.environ.get("LOCALAPPDATA") or Path.home())
+    else:
+        cache_root = Path(os.environ.get("XDG_CACHE_HOME") or (Path.home() / ".cache"))
+    return cache_root / "fbchat-v2" / "bridge" / f"v{_PACKAGE_VERSION}" / name
 
 
-_MAX_BRIDGE_SIZE = 200 * 1024 * 1024
+def _is_source_checkout() -> bool:
+    return (Path(__file__).resolve().parents[2] / "pyproject.toml").is_file()
+
+
+def _release_version_and_digest(binary_name: str) -> tuple[str, str]:
+    release_version = BRIDGE_RELEASE_VERSION or _PACKAGE_VERSION
+    if not _RELEASE_VERSION_PATTERN.fullmatch(release_version):
+        raise RuntimeError("Phiên bản package không hợp lệ để tải bridge an toàn.")
+    if BRIDGE_RELEASE_VERSION and BRIDGE_RELEASE_VERSION != _PACKAGE_VERSION:
+        raise RuntimeError(
+            "Bảng checksum bridge không khớp phiên bản package đang cài đặt."
+        )
+
+    expected_sha256 = (
+        (os.environ.get("FBCHAT_E2EE_SHA256") or BRIDGE_SHA256.get(binary_name) or "")
+        .strip()
+        .lower()
+    )
+    if expected_sha256.startswith("sha256:"):
+        expected_sha256 = expected_sha256.partition(":")[2]
+    if not re.fullmatch(r"[0-9a-f]{64}", expected_sha256):
+        raise RuntimeError(
+            "Thiếu checksum SHA-256 tin cậy cho bridge. Hãy tự build, đặt "
+            "FBCHAT_E2EE_BIN hoặc cung cấp FBCHAT_E2EE_SHA256 từ nguồn độc lập."
+        )
+    return release_version, expected_sha256
+
+
+def _validate_https_download_url(url: str) -> None:
+    parsed_url = urlparse(url)
+    hostname = (parsed_url.hostname or "").lower()
+    try:
+        port = parsed_url.port
+    except ValueError as error:
+        raise RuntimeError("Release trả về URL tải bridge không hợp lệ.") from error
+    if (
+        parsed_url.scheme != "https"
+        or hostname not in _TRUSTED_DOWNLOAD_HOSTS
+        or port not in (None, 443)
+        or parsed_url.username is not None
+        or parsed_url.password is not None
+    ):
+        raise RuntimeError("Release trả về URL tải bridge không hợp lệ.")
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    total = 0
+    with path.open("rb") as file_handle:
+        for chunk in iter(lambda: file_handle.read(64 * 1024), b""):
+            total += len(chunk)
+            if total > _MAX_BRIDGE_SIZE:
+                raise RuntimeError("Bridge vượt quá giới hạn 200 MiB.")
+            digest.update(chunk)
+    if total == 0:
+        raise RuntimeError("Bridge rỗng.")
+    return digest.hexdigest()
+
+
+def _platform_bridge_asset() -> tuple[str, str]:
+    import platform
+
+    system = platform.system().lower()
+    machine = platform.machine().lower()
+    if system not in {"darwin", "linux", "windows"}:
+        raise RuntimeError(f"Hệ điều hành không được hỗ trợ để tự động tải: {system}")
+    architecture = {
+        "x86_64": "amd64",
+        "amd64": "amd64",
+        "arm64": "arm64",
+        "aarch64": "arm64",
+    }.get(machine)
+    if architecture is None:
+        raise RuntimeError(f"Kiến trúc không được hỗ trợ để tự động tải: {machine}")
+    if system == "windows" and architecture == "arm64":
+        raise RuntimeError("Windows ARM64 không có sẵn prebuilt binary. Hãy tự build.")
+
+    goos = system
+    goarch = architecture
+    binary_name = f"fbchat-bridge-e2ee-{goos}-{goarch}"
+    if goos == "windows":
+        binary_name += ".exe"
+    return binary_name, goos
+
+
+def _verify_managed_binary(path: Path) -> None:
+    import stat
+
+    binary_name, _ = _platform_bridge_asset()
+    _, expected_sha256 = _release_version_and_digest(binary_name)
+    if not hmac.compare_digest(_sha256_file(path), expected_sha256):
+        raise RuntimeError("Checksum SHA-256 của bridge cache không khớp package.")
+    if os.name != "nt":
+        os.chmod(path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
 
 
 def _download_bridge(target_path: Path) -> None:
     import logging
-    import platform
     import stat
 
     logger = logging.getLogger("fbchat")
+    binary_name, goos = _platform_bridge_asset()
+    release_version, expected_sha256 = _release_version_and_digest(binary_name)
 
-    system = platform.system().lower()
-    machine = platform.machine().lower()
+    logger.info(
+        "Đang tải bridge E2EE %s từ release v%s...",
+        binary_name,
+        release_version,
+    )
 
-    if system == "darwin":
-        goos = "darwin"
-    elif system == "linux":
-        goos = "linux"
-    elif system == "windows":
-        goos = "windows"
-    else:
-        raise RuntimeError(f"Hệ điều hành không được hỗ trợ để tự động tải: {system}")
-
-    if machine in ["x86_64", "amd64"]:
-        goarch = "amd64"
-    elif machine in ["arm64", "aarch64"]:
-        goarch = "arm64"
-    else:
-        raise RuntimeError(f"Kiến trúc không được hỗ trợ để tự động tải: {machine}")
-
-    if goos == "windows" and goarch == "arm64":
-        raise RuntimeError("Windows ARM64 không có sẵn prebuilt binary. Hãy tự build.")
-
-    binary_name = f"fbchat-bridge-e2ee-{goos}-{goarch}"
-    if goos == "windows":
-        binary_name += ".exe"
-
-    logger.info(f"Đang tự động tải bridge E2EE ({binary_name}) từ GitHub Releases...")
-
-    api_url = "https://api.github.com/repos/MinhHuyDev/fbchat-v2/releases/latest"
-    temporary_path = target_path.with_name(f".{target_path.name}.download")
+    release_tag = f"v{release_version}"
+    api_url = (
+        "https://api.github.com/repos/MinhHuyDev/fbchat-v2/releases/tags/"
+        f"{release_tag}"
+    )
+    temporary_path: Path | None = None
     try:
         resp = httpx.get(api_url, timeout=10, follow_redirects=True)
         resp.raise_for_status()
-        assets = resp.json().get("assets", [])
+        for redirect in [*getattr(resp, "history", []), resp]:
+            _validate_https_download_url(str(redirect.url))
+        release_payload = resp.json()
+        if release_payload.get("tag_name") != release_tag:
+            raise RuntimeError("GitHub API trả về release tag không khớp package.")
+        assets = release_payload.get("assets", [])
         download_url = None
-        expected_digest = None
+        github_digest = None
         for asset in assets:
-            if asset.get("name") == binary_name:
-                download_url = asset["browser_download_url"]
-                expected_digest = asset.get("digest")
+            if isinstance(asset, dict) and asset.get("name") == binary_name:
+                download_url = asset.get("browser_download_url")
+                github_digest = asset.get("digest")
                 break
 
         if not download_url:
             raise RuntimeError(
-                f"Không tìm thấy {binary_name} trên bản release mới nhất."
+                f"Không tìm thấy {binary_name} trên release {release_tag}."
             )
 
         parsed_url = urlparse(download_url)
-        if parsed_url.scheme != "https" or parsed_url.hostname != "github.com":
-            raise RuntimeError("GitHub API trả về URL tải bridge không hợp lệ.")
+        _validate_https_download_url(download_url)
+        if (parsed_url.hostname or "").lower() != "github.com":
+            raise RuntimeError("GitHub API trả về asset URL không chính thức.")
+        expected_path = (
+            f"/MinhHuyDev/fbchat-v2/releases/download/{release_tag}/{binary_name}"
+        )
+        if unquote(parsed_url.path) != expected_path:
+            raise RuntimeError("GitHub API trả về asset ngoài release đã pin.")
+        if github_digest:
+            github_sha256 = str(github_digest).lower().removeprefix("sha256:")
+            if not hmac.compare_digest(github_sha256, expected_sha256):
+                raise RuntimeError(
+                    "Digest trên GitHub Release không khớp checksum trong package."
+                )
 
-        logger.info("Đang tải bridge từ GitHub Releases...")
-        target_path.parent.mkdir(parents=True, exist_ok=True)
+        target_path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        if os.name != "nt":
+            os.chmod(target_path.parent, 0o700)
+
+        descriptor, temporary_name = tempfile.mkstemp(
+            prefix=f".{target_path.name}.",
+            suffix=".download",
+            dir=target_path.parent,
+        )
+        os.close(descriptor)
+        temporary_path = Path(temporary_name)
 
         digest = hashlib.sha256()
         downloaded = 0
@@ -158,8 +267,13 @@ def _download_bridge(target_path: Path) -> None:
             "GET", download_url, timeout=60, follow_redirects=True
         ) as response:
             response.raise_for_status()
-            declared_size = int(response.headers.get("content-length", "0") or 0)
-            if declared_size > _MAX_BRIDGE_SIZE:
+            for redirect in [*response.history, response]:
+                _validate_https_download_url(str(redirect.url))
+            try:
+                declared_size = int(response.headers.get("content-length", "0") or 0)
+            except (TypeError, ValueError) as error:
+                raise RuntimeError("Content-Length của bridge không hợp lệ.") from error
+            if declared_size < 0 or declared_size > _MAX_BRIDGE_SIZE:
                 raise RuntimeError("Bridge vượt quá giới hạn tải 200 MiB.")
             with temporary_path.open("wb") as file_handle:
                 for chunk in response.iter_bytes(chunk_size=64 * 1024):
@@ -168,29 +282,47 @@ def _download_bridge(target_path: Path) -> None:
                         raise RuntimeError("Bridge vượt quá giới hạn tải 200 MiB.")
                     digest.update(chunk)
                     file_handle.write(chunk)
+                file_handle.flush()
+                os.fsync(file_handle.fileno())
 
-        if expected_digest and expected_digest.startswith("sha256:"):
-            expected_sha256 = expected_digest.partition(":")[2].lower()
-            if not hmac.compare_digest(digest.hexdigest(), expected_sha256):
-                raise RuntimeError(
-                    "Checksum SHA-256 của bridge không khớp GitHub Release."
-                )
-
-        temporary_path.replace(target_path)
+        if downloaded == 0:
+            raise RuntimeError("Bridge tải về rỗng.")
+        if declared_size and downloaded != declared_size:
+            raise RuntimeError("Kích thước bridge tải về không khớp Content-Length.")
+        if not hmac.compare_digest(digest.hexdigest(), expected_sha256):
+            raise RuntimeError("Checksum SHA-256 của bridge không khớp package.")
 
         if goos != "windows":
-            st = os.stat(target_path)
-            os.chmod(target_path, st.st_mode | stat.S_IEXEC)
+            os.chmod(temporary_path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+        temporary_path.replace(target_path)
+        if os.name != "nt":
+            directory_fd = os.open(target_path.parent, os.O_RDONLY)
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
 
         logger.info(f"Đã tải thành công bridge E2EE vào {target_path}")
     except Exception as error:
-        temporary_path.unlink(missing_ok=True)
         raise RuntimeError(f"Lỗi khi tải tự động bridge E2EE: {error}") from error
+    finally:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
 
 
 def _resolve_binary() -> Path:
     override = os.environ.get("FBCHAT_E2EE_BIN")
     candidate = Path(override) if override else _default_binary_path()
+    if candidate.exists() and not override and not _is_source_checkout():
+        try:
+            _verify_managed_binary(candidate)
+        except Exception as error:
+            import logging
+
+            logging.getLogger("fbchat").warning(
+                "Bridge cache không hợp lệ, sẽ tải lại: %s", error
+            )
+            candidate.unlink()
     if not candidate.exists():
         if override:
             raise FileNotFoundError(
@@ -206,8 +338,9 @@ def _resolve_binary() -> Path:
             raise FileNotFoundError(
                 f"{e}\n"
                 f"Vui lòng tự build: cd fbchat-v2/bridge-e2ee && go build -o ../build/{candidate.name} .\n"
-                f"Hoặc set env FBCHAT_E2EE_BIN."
-            )
+                "Hoặc đặt FBCHAT_E2EE_BIN; source checkout chỉ tự tải khi có "
+                "FBCHAT_E2EE_SHA256 tin cậy."
+            ) from e
     return candidate
 
 
@@ -233,7 +366,7 @@ class _BridgeProcess:
     BASE_BACKOFF: float = 2.0  # seconds — exponential: 2, 4, 8, 16, 32
     MAX_RPC_REQUEST_BYTES: int = 150 * 1024 * 1024
 
-    def __init__(self, binary: Path, *, log_stderr: bool = True) -> None:
+    def __init__(self, binary: Path, *, log_stderr: bool = False) -> None:
         self.events: "Queue[dict[str, Any]]" = Queue()
         self._next_id = itertools.count(1)
         self._pending: dict[int, Queue] = {}
@@ -260,11 +393,10 @@ class _BridgeProcess:
         self._reader = threading.Thread(target=self._read_loop, daemon=True)
         self._reader.start()
 
-        if self._log_stderr:
-            self._stderr_thread = threading.Thread(
-                target=self._drain_stderr, daemon=True
-            )
-            self._stderr_thread.start()
+        # Luôn drain stderr để bridge không bị deadlock khi pipe đầy. Việc in
+        # nội dung là opt-in vì diagnostic có thể chứa dữ liệu riêng tư.
+        self._stderr_thread = threading.Thread(target=self._drain_stderr, daemon=True)
+        self._stderr_thread.start()
 
     # ------------------------------------------------------------------
     def _drain_stderr(self) -> None:
@@ -274,7 +406,8 @@ class _BridgeProcess:
                 line = raw.decode("utf-8", errors="replace").rstrip()
             except Exception:  # noqa: BLE001
                 continue
-            print(f"[bridge stderr] {line}", file=sys.stderr)
+            if self._log_stderr:
+                print(f"[bridge stderr] {line}", file=sys.stderr)
 
     def _read_loop(self) -> None:
         assert self._proc.stdout is not None
@@ -284,7 +417,10 @@ class _BridgeProcess:
             try:
                 msg = json.loads(raw)
             except json.JSONDecodeError as exc:
-                print(f"[bridge] bad json: {exc} :: {raw!r}", file=sys.stderr)
+                detail = f"{exc} :: {raw!r}" if self._log_stderr else "details hidden"
+                print(
+                    f"[bridge] bad json ({len(raw)} bytes): {detail}", file=sys.stderr
+                )
                 continue
 
             if "event" in msg:
@@ -426,7 +562,8 @@ class _BridgeProcess:
                 )
                 retries = 0  # Reset sau khi respawn thành công
             except Exception as exc:
-                print(f"[{datetime.datetime.now()}] Respawn failed: {exc}")
+                detail = str(exc) if self._log_stderr else type(exc).__name__
+                print(f"[{datetime.datetime.now()}] Respawn failed: {detail}")
                 retries += 1
 
     # ------------------------------------------------------------------
@@ -484,12 +621,14 @@ class listeningE2EEEvent:
         e2ee_memory_only: bool = True,
         enable_e2ee: bool = True,
         binary_path: Optional[str] = None,
+        debug_errors: bool = False,
     ) -> None:
         self.dataFB = dataFB
         self.log_level = log_level
         self.device_path = device_path
         self.e2ee_memory_only = e2ee_memory_only
         self.enable_e2ee = enable_e2ee
+        self.debug_errors = debug_errors
         self._binary_path_override = binary_path
 
         self._on_message = None
@@ -543,16 +682,22 @@ class listeningE2EEEvent:
         deadline = time.monotonic() + timeout
         if not self._connected.wait(timeout):
             if self._startup_error is not None:
-                raise RuntimeError("E2EE listener failed to start.") from self._startup_error
+                raise RuntimeError(
+                    "E2EE listener failed to start."
+                ) from self._startup_error
             return False
         if self._startup_error is not None:
-            raise RuntimeError("E2EE listener failed to start.") from self._startup_error
+            raise RuntimeError(
+                "E2EE listener failed to start."
+            ) from self._startup_error
         if not require_e2ee or not self.enable_e2ee:
             return True
         remaining = max(0.0, deadline - time.monotonic())
         if not self._e2ee_connected.wait(remaining):
             if self._startup_error is not None:
-                raise RuntimeError("E2EE listener failed during E2EE handshake.") from self._startup_error
+                raise RuntimeError(
+                    "E2EE listener failed during E2EE handshake."
+                ) from self._startup_error
             return False
         return True
 
@@ -587,7 +732,7 @@ class listeningE2EEEvent:
         self._stop.clear()
 
         try:
-            self._bridge = _BridgeProcess(binary)
+            self._bridge = _BridgeProcess(binary, log_stderr=self.debug_errors)
 
             cfg: dict[str, Any] = {
                 "cookies": self._build_cookie_dict(),
@@ -613,7 +758,8 @@ class listeningE2EEEvent:
                     self._e2ee_connected.set()
                     print(f"[{datetime.datetime.now()}] E2EE connected")
                 except BridgeError as exc:
-                    print(f"[{datetime.datetime.now()}] E2EE connect failed: {exc}")
+                    detail = str(exc) if self.debug_errors else type(exc).__name__
+                    print(f"[{datetime.datetime.now()}] E2EE connect failed: {detail}")
 
             # Khởi động watchdog — auto-respawn khi bridge crash
             self._bridge.start_watchdog(connect_cfg=cfg, enable_e2ee=self.enable_e2ee)
@@ -653,9 +799,8 @@ class listeningE2EEEvent:
                     continue
 
                 if evt.get("type") == "bridge_fatal":
-                    print(
-                        f"[{datetime.datetime.now()}] bridge_fatal: {evt.get('error')}"
-                    )
+                    detail = evt.get("error") if self.debug_errors else "details hidden"
+                    print(f"[{datetime.datetime.now()}] bridge_fatal: {detail}")
                     break
 
                 self._dispatch(evt)
@@ -680,15 +825,21 @@ class listeningE2EEEvent:
         elif etype == "e2eeConnected":
             print(f"[{datetime.datetime.now()}] e2eeConnected")
         elif etype == "disconnected":
-            print(f"[{datetime.datetime.now()}] disconnected: {data}")
+            detail = f": {data}" if self.debug_errors else ""
+            print(f"[{datetime.datetime.now()}] disconnected{detail}")
         elif etype == "error":
-            print(f"[{datetime.datetime.now()}] bridge error: {data}")
+            detail = str(data) if self.debug_errors else "payload hidden"
+            print(f"[{datetime.datetime.now()}] bridge error ({detail})")
 
         if self._on_message:
             try:
                 self._on_message(evt)
             except Exception as exc:  # noqa: BLE001
-                print(f"[{datetime.datetime.now()}] handler raised: {exc}")
+                detail = str(exc) if self.debug_errors else "details hidden"
+                print(
+                    f"[{datetime.datetime.now()}] handler raised: "
+                    f"{type(exc).__name__} ({detail})"
+                )
 
     def _populate_regular(self, msg: dict[str, Any]) -> None:
         body = self._fresh_body()

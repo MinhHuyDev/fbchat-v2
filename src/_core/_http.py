@@ -19,12 +19,9 @@ Author: @m008v (MinhHuyDev)
 
 from __future__ import annotations
 
-"""HTTP transport dùng chung, ưu tiên async và vẫn giữ tương thích sync."""
-
 from typing import Any
 
 import httpx
-
 
 DEFAULT_TIMEOUT = 60.0
 TimeoutValue = float | httpx.Timeout | None

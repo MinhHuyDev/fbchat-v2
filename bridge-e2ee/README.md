@@ -140,9 +140,12 @@ Python wrapper resolve binary theo thứ tự:
 
 1. `binary_path=` trong `listeningE2EEEvent`.
 2. Biến môi trường `FBCHAT_E2EE_BIN`.
-3. `build/fbchat-bridge-e2ee.exe` trên Windows.
-4. `build/fbchat-bridge-e2ee` trên Linux/macOS.
-5. Auto-download release asset nếu path mặc định chưa tồn tại.
+3. Source checkout dùng `build/fbchat-bridge-e2ee.exe` trên Windows hoặc
+   `build/fbchat-bridge-e2ee` trên Linux/macOS.
+4. Package đã cài dùng cache riêng theo version trong Local AppData (Windows)
+   hoặc `${XDG_CACHE_HOME:-~/.cache}/fbchat-v2/bridge/` (Linux/macOS).
+5. Auto-download release asset nếu cache mặc định chưa tồn tại hoặc không còn
+   khớp checksum.
 
 Override:
 
@@ -158,14 +161,20 @@ Khi `binary_path` hoặc env override được đặt mà file không tồn tạ
 
 Auto-download hiện có các guard:
 
-- Chỉ gọi GitHub Releases API qua HTTPS.
-- Reject initial host không mong đợi.
+- Chỉ gọi GitHub Releases API qua HTTPS và endpoint tag đã pin.
+- Kiểm tra host HTTPS ở toàn bộ redirect chain và asset phải thuộc đúng release/tag.
 - Stream response thay vì load cả file vào RAM.
 - Giới hạn 200 MiB.
 - Ghi file tạm rồi atomic replace.
-- Kiểm tra SHA-256 khi GitHub trả digest.
+- File tạm có tên duy nhất để nhiều process tải đồng thời không đè nhau.
+- Chỉ tải đúng release trùng với phiên bản package Python.
+- Bắt buộc checksum SHA-256 được đóng gói độc lập trong wheel; thiếu checksum thì fail closed.
+- Xác minh lại checksum của binary cache trước mỗi lần thực thi; cache bị sửa sẽ
+  bị loại bỏ và tải lại.
+- Workflow release tạo build-provenance attestation cho từng binary và manifest `SHA256SUMS`.
 
-Production nên pin binary do chính bạn build hoặc xác minh.
+Source checkout không có checksum sinh sẵn nên sẽ không tự tải bridge. Hãy tự build,
+đặt `FBCHAT_E2EE_BIN`, hoặc cung cấp SHA-256 tin cậy qua `FBCHAT_E2EE_SHA256`.
 
 ---
 
@@ -197,6 +206,11 @@ RPC `newClient` nhận:
 | `devicePath` | Path state khi persistence được bật |
 
 Nếu dùng `devicePath`, file này là secret vì có thể chứa device/session state. Không commit hoặc chia sẻ nó.
+
+Ở Python wrapper, `debug_errors=False` là mặc định: stderr vẫn được drain để
+tránh deadlock nhưng nội dung diagnostic, payload lỗi và exception bị ẩn. Chỉ
+bật `debug_errors=True` trong môi trường kiểm soát vì log có thể chứa dữ liệu
+riêng tư.
 
 ---
 
@@ -271,6 +285,9 @@ Python `_BridgeProcess` giới hạn request JSON-RPC ở 150 MiB. Media base64 
 | `sendE2EEDocument` | Document E2EE |
 | `sendE2EEAudio` | Audio/voice E2EE |
 | `sendE2EEImage` | Image E2EE |
+
+Các request đặt `isE2EE=true` sẽ trả `ErrE2EENotConnected` nếu phiên mã hóa chưa
+sẵn sàng; bridge không tự hạ cấp nội dung sang transport thường.
 
 ### Mutation và state
 

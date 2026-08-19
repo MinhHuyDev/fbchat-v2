@@ -73,7 +73,7 @@ def digitToChar(digit: int) -> str:
 def str_base(number: int, base: int) -> str:
     if number < 0:
         return "-" + str_base(-number, base)
-    (d, m) = divmod(number, base)
+    d, m = divmod(number, base)
     if d > 0:
         return str_base(d, base) + digitToChar(m)
     return digitToChar(m)

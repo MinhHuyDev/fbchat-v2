@@ -132,7 +132,6 @@ def _parse_response(payload: dict[str, Any], keyword: str) -> dict[str, Any]:
     }
 
 
-
 async def func(
     dataFB: dict[str, Any],
     keywordSearch: str,

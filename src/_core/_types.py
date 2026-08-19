@@ -1,23 +1,4 @@
 """
-Đường dẫn file:
-  src/_core/_types.py
-
-Mục đích:
-  - Khai báo các Type Hint chung dùng trong toàn bộ dự án.
-
-Cách hoạt động:
-  - Nạp dependency/guard cần thiết, thực hiện các async HTTP requests tới API nội bộ hoặc GraphQL của Facebook.
-  - Các thao tác request đều phải thông qua httpx.AsyncClient và module _core._utils để bảo đảm an toàn kết nối.
-  - Payload gửi đi/nhận về được xử lý JSON cẩn thận, bắt lỗi try-except đầy đủ để tránh crash hệ thống.
-
-File liên quan:
-  - src/main.py và các entrypoint khác.
-  - Phụ thuộc vào _core._session, _core._utils để khởi tạo và thao tác HTTP.
-
-Author: @m008v (MinhHuyDev)
-"""
-
-"""
 Shared type definitions cho toàn bộ fbchat-v2 codebase.
 
 Cung cấp TypedDict và type aliases cho các cấu trúc dữ liệu phổ biến:

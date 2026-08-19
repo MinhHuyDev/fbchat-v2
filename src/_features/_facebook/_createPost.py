@@ -126,7 +126,6 @@ def _parse_result(payload: dict[str, Any]) -> dict[str, Any]:
     return {"success": 1, "messages": "Tạo bài viết thành công!", "urlPost": url}
 
 
-
 async def func(
     dataFB: dict[str, Any],
     newContents: str,

@@ -88,9 +88,7 @@ class listeningEvent:
         except Empty:
             return None
 
-    async def get_message(
-        self, timeout: float | None = None
-    ) -> dict[str, Any] | None:
+    async def get_message(self, timeout: float | None = None) -> dict[str, Any] | None:
         """Chờ một tin nhắn mà không chặn event loop."""
         return await asyncio.to_thread(self.get_message_blocking, True, timeout)
 
@@ -355,4 +353,4 @@ class listeningEvent:
             self.mqtt.disconnect()
 
     async def disconnect(self) -> None:
-        self.disconnect()
+        await asyncio.to_thread(self.disconnect_blocking)

@@ -335,6 +335,7 @@ def re_createNote_blocking(
 # Default entry point (theo style fbchat-v2): func(dataFB, action, ...)
 # ---------------------------------------------------------------------
 
+
 async def checkNote(dataFB: dict[str, Any]) -> dict[str, Any]:
     variables = {"scale": 2}
     resData = await _post_graphql_async(

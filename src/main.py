@@ -1,22 +1,3 @@
-"""
-Đường dẫn file:
-  src/main.py
-
-Mục đích:
-  - Khởi tạo bot mẫu, demo các luồng gọi async của fbchat-v2.
-
-Cách hoạt động:
-  - Nạp dependency/guard cần thiết, thực hiện các async HTTP requests tới API nội bộ hoặc GraphQL của Facebook.
-  - Các thao tác request đều phải thông qua httpx.AsyncClient và module _core._utils để bảo đảm an toàn kết nối.
-  - Payload gửi đi/nhận về được xử lý JSON cẩn thận, bắt lỗi try-except đầy đủ để tránh crash hệ thống.
-
-File liên quan:
-  - src/main.py và các entrypoint khác.
-  - Phụ thuộc vào _core._session, _core._utils để khởi tạo và thao tác HTTP.
-
-Author: @m008v (MinhHuyDev)
-"""
-
 """Bot mẫu async-first cho fbchat-v2."""
 
 from __future__ import annotations
@@ -34,6 +15,7 @@ from typing import Any
 
 import httpx
 
+from _core._permissions import create_private_json_file, set_private_file_permissions
 from _core._session import dataGetHome
 from _core._storage import FileSessionStorage
 from _features._facebook import _search
@@ -47,6 +29,9 @@ DEFAULT_HTTP_TIMEOUT = 30.0
 DEFAULT_E2EE_READY_TIMEOUT = 90.0
 EVENT_QUEUE_MAXSIZE = 1000
 
+_create_private_config = create_private_json_file
+_set_private_file_permissions = set_private_file_permissions
+
 
 def load_config() -> dict[str, Any]:
     """Đọc config và tạo template an toàn nếu chưa tồn tại."""
@@ -55,22 +40,29 @@ def load_config() -> dict[str, Any]:
             "cookies": "PASTE_YOUR_FACEBOOK_COOKIE_HERE",
             "prefix": "/",
             "admins": [],
+            "log_message_content": False,
+            "debug_errors": False,
         }
-        CONFIG_PATH.write_text(
-            json.dumps(template, indent=2, ensure_ascii=False), encoding="utf-8"
-        )
-        raise RuntimeError(
-            f"Đã tạo template tại {CONFIG_PATH}. Điền cookies rồi chạy lại."
-        )
+        if _create_private_config(CONFIG_PATH, template):
+            raise RuntimeError(
+                f"Đã tạo template riêng tư tại {CONFIG_PATH}. Điền cookies rồi chạy lại."
+            )
 
+    _set_private_file_permissions(CONFIG_PATH)
     with CONFIG_PATH.open("r", encoding="utf-8") as file_handle:
         config = json.load(file_handle)
     config.setdefault("prefix", "/")
     config.setdefault("admins", [])
+    config.setdefault("log_message_content", False)
+    config.setdefault("debug_errors", False)
     if not isinstance(config["prefix"], str) or not config["prefix"]:
         raise ValueError("config.prefix phải là chuỗi không rỗng.")
     if not isinstance(config["admins"], list):
         raise ValueError("config.admins phải là một danh sách ID.")
+    if not isinstance(config["log_message_content"], bool):
+        raise ValueError("config.log_message_content phải là true hoặc false.")
+    if not isinstance(config["debug_errors"], bool):
+        raise ValueError("config.debug_errors phải là true hoặc false.")
     return config
 
 
@@ -103,13 +95,17 @@ class SimpleBot:
         *,
         prefix: str = "/",
         admins: list[Any] | None = None,
+        log_message_content: bool = False,
+        debug_errors: bool = False,
         http_client: httpx.AsyncClient | None = None,
     ) -> None:
         self.dataFB = dataFB
         self.prefix = prefix
         self.admins = {str(admin_id) for admin_id in admins or []}
+        self.log_message_content = log_message_content
+        self.debug_errors = debug_errors
         self.http_client = http_client
-        self.listener = listeningE2EEEvent(dataFB)
+        self.listener = listeningE2EEEvent(dataFB, debug_errors=debug_errors)
         self._event_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue(
             maxsize=EVENT_QUEUE_MAXSIZE
         )
@@ -184,8 +180,7 @@ class SimpleBot:
         except asyncio.TimeoutError:
             return None
 
-    @staticmethod
-    def _message_from_event(event: dict[str, Any]) -> dict[str, Any] | None:
+    def _message_from_event(self, event: dict[str, Any]) -> dict[str, Any] | None:
         event_type = event.get("type")
         data = event.get("data") or {}
 
@@ -196,10 +191,13 @@ class SimpleBot:
             "disconnected",
             "closed",
         }:
-            log("e2ee", f"{event_type}: {data}")
+            log("e2ee", str(event_type))
             return None
         if event_type == "error":
-            log("e2ee", f"bridge error: {data}")
+            if self.debug_errors:
+                log("e2ee", f"bridge error: {data}")
+            else:
+                log("e2ee", "bridge error (chi tiết đã được ẩn)")
             return None
         if event_type == "raw":
             return None
@@ -234,7 +232,12 @@ class SimpleBot:
         if sender_id == str(self.dataFB.get("FacebookID")) or not body:
             return
         target = message.get("chatJid") or message.get("replyToID")
-        log("recv", f"[{message.get('type')}] {sender_id}@{target}: {body!r}")
+        body_for_log = (
+            repr(body)
+            if self.log_message_content
+            else f"<redacted length={len(str(body))}>"
+        )
+        log("recv", f"[{message.get('type')}] {sender_id}@{target}: {body_for_log}")
         if not str(body).startswith(self.prefix):
             return
 
@@ -246,13 +249,21 @@ class SimpleBot:
         argument = parts[1] if len(parts) > 1 else ""
         handler = self._handlers.get(command)
         if handler is None:
-            log("cmd", f"Bỏ qua lệnh không tồn tại: {command}")
+            detail = command if self.log_message_content else "<redacted>"
+            log("cmd", f"Bỏ qua lệnh không tồn tại: {detail}")
             return
         try:
             await handler(message, argument)
         except Exception as error:  # bot không được chết vì một lệnh lỗi
-            log("err", f"Lỗi khi xử lý /{command}: {error}")
-            traceback.print_exc()
+            if self.debug_errors:
+                log("err", f"Lỗi khi xử lý /{command}: {error}")
+                traceback.print_exc()
+            else:
+                log(
+                    "err",
+                    f"Lỗi {type(error).__name__} khi xử lý /{command}; "
+                    "bật debug_errors để xem chi tiết.",
+                )
 
     async def _reply(self, message: dict[str, Any], content: str) -> None:
         chat_jid = message.get("chatJid")
@@ -266,14 +277,23 @@ class SimpleBot:
             message_id = result.get("messageId") or result.get("id")
             if message_id:
                 self._last_bot_message[str(chat_jid)] = (str(chat_jid), str(message_id))
-                log("send", f"E2EE -> {chat_jid}: {content!r}")
+                content_for_log = (
+                    repr(content)
+                    if self.log_message_content
+                    else f"<redacted length={len(content)}>"
+                )
+                log("send", f"E2EE -> {chat_jid}: {content_for_log}")
             else:
-                log("send", f"E2EE FAIL -> {chat_jid}: {result}")
+                log("send", f"E2EE FAIL -> {chat_jid}; keys={sorted(result)}")
             return
 
         thread_id = message.get("replyToID")
         if not thread_id:
-            log("send", f"Bỏ qua reply vì thiếu chatJid/threadID: {message}")
+            log(
+                "send",
+                "Bỏ qua reply vì thiếu chatJid/threadID "
+                f"(messageID={message.get('messageID')!r}).",
+            )
             return
         result = await self.listener.send_message(
             int(thread_id),
@@ -282,9 +302,14 @@ class SimpleBot:
         )
         message_id = result.get("messageId") or result.get("id")
         if message_id:
-            log("send", f"regular -> {thread_id}: {content!r}")
+            content_for_log = (
+                repr(content)
+                if self.log_message_content
+                else f"<redacted length={len(content)}>"
+            )
+            log("send", f"regular -> {thread_id}: {content_for_log}")
         else:
-            log("send", f"regular FAIL -> {thread_id}: {result}")
+            log("send", f"regular FAIL -> {thread_id}; keys={sorted(result)}")
 
     async def _cmd_ping(self, message: dict[str, Any], argument: str) -> None:
         sent_ts = int(message.get("timestamp") or 0)
@@ -345,11 +370,15 @@ class SimpleBot:
             return
         chat_jid = str(message.get("chatJid") or "")
         if not chat_jid:
-            await self._reply(message, "Lệnh unsend E2EE cần chatJid, chat thường không dùng được.")
+            await self._reply(
+                message, "Lệnh unsend E2EE cần chatJid, chat thường không dùng được."
+            )
             return
         target = self._last_bot_message.get(chat_jid)
         if not target:
-            await self._reply(message, "ℹ️ Chưa có tin E2EE nào để thu hồi trong chat này.")
+            await self._reply(
+                message, "ℹ️ Chưa có tin E2EE nào để thu hồi trong chat này."
+            )
             return
         target_chat_jid, target_message_id = target
         if self.listener._bridge is None:
@@ -358,7 +387,7 @@ class SimpleBot:
         result = await BridgeActions(self.listener._bridge).unsend_e2ee_message(
             target_chat_jid, target_message_id
         )
-        log("unsend", f"{target_message_id} -> {result}")
+        log("unsend", f"{target_message_id}; keys={sorted(result)}")
         self._last_bot_message.pop(chat_jid, None)
 
 
@@ -377,6 +406,8 @@ async def main() -> None:
             dataFB,
             prefix=config["prefix"],
             admins=config["admins"],
+            log_message_content=config["log_message_content"],
+            debug_errors=config["debug_errors"],
             http_client=http_client,
         )
         await bot.run()

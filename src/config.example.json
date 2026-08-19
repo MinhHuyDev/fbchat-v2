@@ -5,5 +5,7 @@
   "admins": [
     "1000xxxxxxxxxx"
   ],
+  "log_message_content": false,
+  "debug_errors": false,
   "version": "0.0.1"
 }

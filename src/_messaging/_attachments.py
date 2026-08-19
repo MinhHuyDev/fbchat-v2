@@ -146,7 +146,9 @@ def _parse_upload_error(root: Any, text: str) -> dict[str, Any]:
     if isinstance(root, dict):
         payload = root.get("payload") if isinstance(root.get("payload"), dict) else {}
         metadata = payload.get("metadata") if isinstance(payload, dict) else None
-        metadata_items = list(metadata.values()) if isinstance(metadata, dict) else metadata
+        metadata_items = (
+            list(metadata.values()) if isinstance(metadata, dict) else metadata
+        )
         rejected_all_files = (
             isinstance(metadata_items, list | tuple)
             and metadata_items

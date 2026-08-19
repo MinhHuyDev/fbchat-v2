@@ -1,23 +1,4 @@
 """
-Đường dẫn file:
-  src/_e2ee_listening_test.py
-
-Mục đích:
-  - Test tính năng lắng nghe tin nhắn mã hoá đầu cuối (E2EE).
-
-Cách hoạt động:
-  - Nạp dependency/guard cần thiết, thực hiện các async HTTP requests tới API nội bộ hoặc GraphQL của Facebook.
-  - Các thao tác request đều phải thông qua httpx.AsyncClient và module _core._utils để bảo đảm an toàn kết nối.
-  - Payload gửi đi/nhận về được xử lý JSON cẩn thận, bắt lỗi try-except đầy đủ để tránh crash hệ thống.
-
-File liên quan:
-  - src/main.py và các entrypoint khác.
-  - Phụ thuộc vào _core._session, _core._utils để khởi tạo và thao tác HTTP.
-
-Author: @m008v (MinhHuyDev)
-"""
-
-"""
 fbchat-v2 :: tester.py
 ======================
 
@@ -66,7 +47,6 @@ from _messaging._listening_e2ee import (  # noqa: E402
     listeningE2EEEvent,
     _resolve_binary,
 )
-
 
 # ---------------------------------------------------------------------------
 # Cookie loader

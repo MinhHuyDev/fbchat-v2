@@ -1,23 +1,4 @@
 """
-Đường dẫn file:
-  src/_messaging/_send_e2ee.py
-
-Mục đích:
-  - Gửi tin nhắn mã hoá đầu cuối (E2EE).
-
-Cách hoạt động:
-  - Nạp dependency/guard cần thiết, thực hiện các async HTTP requests tới API nội bộ hoặc GraphQL của Facebook.
-  - Các thao tác request đều phải thông qua httpx.AsyncClient và module _core._utils để bảo đảm an toàn kết nối.
-  - Payload gửi đi/nhận về được xử lý JSON cẩn thận, bắt lỗi try-except đầy đủ để tránh crash hệ thống.
-
-File liên quan:
-  - src/main.py và các entrypoint khác.
-  - Phụ thuộc vào _core._session, _core._utils để khởi tạo và thao tác HTTP.
-
-Author: @m008v (MinhHuyDev)
-"""
-
-"""
 fbchat-v2 :: _send_e2ee.py
 ==========================
 
@@ -72,7 +53,6 @@ from _messaging._listening_e2ee import (
     listeningE2EEEvent,
     _REQUIRED_COOKIES,
 )
-
 
 E2EE_MESSENGER_SERVER = "msgr"
 

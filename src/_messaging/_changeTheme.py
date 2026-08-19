@@ -393,7 +393,6 @@ def _changeTheme_blocking(
     }
 
 
-
 async def listThemes(dataFB: dict[str, Any]) -> dict[str, Any]:
     resData = await _post_graphql_async(
         dataFB,

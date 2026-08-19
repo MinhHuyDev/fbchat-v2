@@ -569,7 +569,8 @@ type SendE2EEImageOptions struct {
 
 // SendE2EEImage sends an E2EE image
 func (c *Client) SendE2EEImage(opts *SendE2EEImageOptions) (*SendMessageResult, error) {
-	if c.E2EE == nil || !c.E2EE.IsConnected() {
+	e2eeClient := c.snapshotE2EEClient()
+	if e2eeClient == nil || !e2eeClient.IsConnected() {
 		return nil, ErrE2EENotConnected
 	}
 
@@ -594,7 +595,7 @@ func (c *Client) SendE2EEImage(opts *SendE2EEImageOptions) (*SendMessageResult, 
 	}
 
 	// Upload media
-	uploaded, err := c.E2EE.Upload(c.ctx, opts.Data, whatsmeow.MediaImage)
+	uploaded, err := e2eeClient.Upload(c.ctx, opts.Data, whatsmeow.MediaImage)
 	if err != nil {
 		return nil, err
 	}
@@ -665,7 +666,7 @@ func (c *Client) SendE2EEImage(opts *SendE2EEImageOptions) (*SendMessageResult, 
 	}
 
 	msgID := strconv.FormatInt(time.Now().UnixNano(), 10)
-	resp, err := c.E2EE.SendFBMessage(c.ctx, chatJID, waMsg, metadata, whatsmeow.SendRequestExtra{
+	resp, err := e2eeClient.SendFBMessage(c.ctx, chatJID, waMsg, metadata, whatsmeow.SendRequestExtra{
 		ID:          msgID,
 		MediaHandle: uploaded.Handle,
 	})
@@ -694,7 +695,8 @@ type SendE2EEVideoOptions struct {
 
 // SendE2EEVideo sends an E2EE video
 func (c *Client) SendE2EEVideo(opts *SendE2EEVideoOptions) (*SendMessageResult, error) {
-	if c.E2EE == nil || !c.E2EE.IsConnected() {
+	e2eeClient := c.snapshotE2EEClient()
+	if e2eeClient == nil || !e2eeClient.IsConnected() {
 		return nil, ErrE2EENotConnected
 	}
 
@@ -718,7 +720,7 @@ func (c *Client) SendE2EEVideo(opts *SendE2EEVideoOptions) (*SendMessageResult, 
 	}
 
 	// Upload media
-	uploaded, err := c.E2EE.Upload(c.ctx, opts.Data, whatsmeow.MediaVideo)
+	uploaded, err := e2eeClient.Upload(c.ctx, opts.Data, whatsmeow.MediaVideo)
 	if err != nil {
 		return nil, err
 	}
@@ -791,7 +793,7 @@ func (c *Client) SendE2EEVideo(opts *SendE2EEVideoOptions) (*SendMessageResult, 
 	}
 
 	msgID := strconv.FormatInt(time.Now().UnixNano(), 10)
-	resp, err := c.E2EE.SendFBMessage(c.ctx, chatJID, waMsg, metadata, whatsmeow.SendRequestExtra{
+	resp, err := e2eeClient.SendFBMessage(c.ctx, chatJID, waMsg, metadata, whatsmeow.SendRequestExtra{
 		ID:          msgID,
 		MediaHandle: uploaded.Handle,
 	})
@@ -818,7 +820,8 @@ type SendE2EEAudioOptions struct {
 
 // SendE2EEAudio sends an E2EE audio/voice message
 func (c *Client) SendE2EEAudio(opts *SendE2EEAudioOptions) (*SendMessageResult, error) {
-	if c.E2EE == nil || !c.E2EE.IsConnected() {
+	e2eeClient := c.snapshotE2EEClient()
+	if e2eeClient == nil || !e2eeClient.IsConnected() {
 		return nil, ErrE2EENotConnected
 	}
 
@@ -833,7 +836,7 @@ func (c *Client) SendE2EEAudio(opts *SendE2EEAudioOptions) (*SendMessageResult, 
 	}
 
 	// Upload media
-	uploaded, err := c.E2EE.Upload(c.ctx, opts.Data, whatsmeow.MediaAudio)
+	uploaded, err := e2eeClient.Upload(c.ctx, opts.Data, whatsmeow.MediaAudio)
 	if err != nil {
 		return nil, err
 	}
@@ -896,7 +899,7 @@ func (c *Client) SendE2EEAudio(opts *SendE2EEAudioOptions) (*SendMessageResult, 
 	}
 
 	msgID := strconv.FormatInt(time.Now().UnixNano(), 10)
-	resp, err := c.E2EE.SendFBMessage(c.ctx, chatJID, waMsg, metadata, whatsmeow.SendRequestExtra{
+	resp, err := e2eeClient.SendFBMessage(c.ctx, chatJID, waMsg, metadata, whatsmeow.SendRequestExtra{
 		ID:          msgID,
 		MediaHandle: uploaded.Handle,
 	})
@@ -922,7 +925,8 @@ type SendE2EEDocumentOptions struct {
 
 // SendE2EEDocument sends an E2EE document/file
 func (c *Client) SendE2EEDocument(opts *SendE2EEDocumentOptions) (*SendMessageResult, error) {
-	if c.E2EE == nil || !c.E2EE.IsConnected() {
+	e2eeClient := c.snapshotE2EEClient()
+	if e2eeClient == nil || !e2eeClient.IsConnected() {
 		return nil, ErrE2EENotConnected
 	}
 
@@ -937,7 +941,7 @@ func (c *Client) SendE2EEDocument(opts *SendE2EEDocumentOptions) (*SendMessageRe
 	}
 
 	// Upload media
-	uploaded, err := c.E2EE.Upload(c.ctx, opts.Data, whatsmeow.MediaDocument)
+	uploaded, err := e2eeClient.Upload(c.ctx, opts.Data, whatsmeow.MediaDocument)
 	if err != nil {
 		return nil, err
 	}
@@ -998,7 +1002,7 @@ func (c *Client) SendE2EEDocument(opts *SendE2EEDocumentOptions) (*SendMessageRe
 	}
 
 	msgID := strconv.FormatInt(time.Now().UnixNano(), 10)
-	resp, err := c.E2EE.SendFBMessage(c.ctx, chatJID, waMsg, metadata, whatsmeow.SendRequestExtra{
+	resp, err := e2eeClient.SendFBMessage(c.ctx, chatJID, waMsg, metadata, whatsmeow.SendRequestExtra{
 		ID:          msgID,
 		MediaHandle: uploaded.Handle,
 	})
@@ -1025,7 +1029,8 @@ type SendE2EEStickerOptions struct {
 
 // SendE2EESticker sends an E2EE sticker
 func (c *Client) SendE2EESticker(opts *SendE2EEStickerOptions) (*SendMessageResult, error) {
-	if c.E2EE == nil || !c.E2EE.IsConnected() {
+	e2eeClient := c.snapshotE2EEClient()
+	if e2eeClient == nil || !e2eeClient.IsConnected() {
 		return nil, ErrE2EENotConnected
 	}
 
@@ -1049,7 +1054,7 @@ func (c *Client) SendE2EESticker(opts *SendE2EEStickerOptions) (*SendMessageResu
 	}
 
 	// Upload media (stickers are typically image/webp)
-	uploaded, err := c.E2EE.Upload(c.ctx, opts.Data, whatsmeow.MediaImage)
+	uploaded, err := e2eeClient.Upload(c.ctx, opts.Data, whatsmeow.MediaImage)
 	if err != nil {
 		return nil, err
 	}
@@ -1115,7 +1120,7 @@ func (c *Client) SendE2EESticker(opts *SendE2EEStickerOptions) (*SendMessageResu
 	}
 
 	msgID := strconv.FormatInt(time.Now().UnixNano(), 10)
-	resp, err := c.E2EE.SendFBMessage(c.ctx, chatJID, waMsg, metadata, whatsmeow.SendRequestExtra{
+	resp, err := e2eeClient.SendFBMessage(c.ctx, chatJID, waMsg, metadata, whatsmeow.SendRequestExtra{
 		ID:          msgID,
 		MediaHandle: uploaded.Handle,
 	})
@@ -1149,7 +1154,8 @@ type DownloadE2EEMediaResult struct {
 
 // DownloadE2EEMedia downloads and decrypts E2EE media
 func (c *Client) DownloadE2EEMedia(opts *DownloadE2EEMediaOptions) (*DownloadE2EEMediaResult, error) {
-	if c.E2EE == nil || !c.E2EE.IsConnected() {
+	e2eeClient := c.snapshotE2EEClient()
+	if e2eeClient == nil || !e2eeClient.IsConnected() {
 		return nil, ErrE2EENotConnected
 	}
 
@@ -1197,7 +1203,7 @@ func (c *Client) DownloadE2EEMedia(opts *DownloadE2EEMediaOptions) (*DownloadE2E
 	}
 
 	// Download and decrypt
-	data, err := c.E2EE.DownloadFB(c.ctx, integral, waMediaType)
+	data, err := e2eeClient.DownloadFB(c.ctx, integral, waMediaType)
 	if err != nil {
 		return nil, fmt.Errorf("failed to download E2EE media: %w", err)
 	}
