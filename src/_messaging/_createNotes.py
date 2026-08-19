@@ -313,11 +313,11 @@ def re_createNote_blocking(
     dataFB: dict[str, Any], oldNoteID: str, newText: str, privacy: str = "FRIENDS"
 ) -> dict[str, Any]:
     """Xoá note cũ rồi tạo note mới."""
-    deleted = deleteNote(dataFB, oldNoteID)
+    deleted = _deleteNote_blocking(dataFB, oldNoteID)
     if deleted.get("error"):
         return deleted
 
-    created = createNote(dataFB, newText, privacy=privacy)
+    created = _createNote_blocking(dataFB, newText, privacy=privacy)
     if created.get("error"):
         return created
 

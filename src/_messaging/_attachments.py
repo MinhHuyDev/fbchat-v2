@@ -144,7 +144,8 @@ def _response_excerpt(text: str, limit: int = 600) -> str:
 
 def _parse_upload_error(root: Any, text: str) -> dict[str, Any]:
     if isinstance(root, dict):
-        payload = root.get("payload") if isinstance(root.get("payload"), dict) else {}
+        raw_payload = root.get("payload")
+        payload: dict[str, Any] = raw_payload if isinstance(raw_payload, dict) else {}
         metadata = payload.get("metadata") if isinstance(payload, dict) else None
         metadata_items = (
             list(metadata.values()) if isinstance(metadata, dict) else metadata

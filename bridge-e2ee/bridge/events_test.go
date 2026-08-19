@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"go.mau.fi/mautrix-meta/pkg/messagix"
 	"go.mau.fi/mautrix-meta/pkg/messagix/table"
 	"go.mau.fi/whatsmeow/types/events"
 )
@@ -20,6 +21,41 @@ func newEventPipelineTestClient(t *testing.T, liveCutoffMs int64) *Client {
 		threadCache:         make(map[int64]*Thread),
 		recentMessages:      make(map[string]recentMessageEvent),
 		liveMessageCutoffMs: liveCutoffMs,
+	}
+}
+
+func TestHandleSocketErrorsWithoutUnderlyingError(t *testing.T) {
+	tests := []struct {
+		name  string
+		event any
+		code  int
+	}{
+		{name: "socket disconnected", event: &messagix.Event_SocketError{}},
+		{name: "permanent failure", event: &messagix.Event_PermanentError{}, code: 1},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			client := newEventPipelineTestClient(t, 0)
+			client.regularConnected.Store(true)
+			client.handleMessagixEvent(context.Background(), test.event)
+			if client.IsConnected() {
+				t.Fatal("client remained connected after a socket failure")
+			}
+
+			raw := <-client.eventChan
+			if raw.Type != EventTypeRaw {
+				t.Fatalf("first event type = %q, want %q", raw.Type, EventTypeRaw)
+			}
+			diagnostic := <-client.eventChan
+			if diagnostic.Type != EventTypeError {
+				t.Fatalf("diagnostic event type = %q, want %q", diagnostic.Type, EventTypeError)
+			}
+			errorEvent, ok := diagnostic.Data.(*ErrorEvent)
+			if !ok || errorEvent.Message == "" || errorEvent.Code != test.code {
+				t.Fatalf("diagnostic event data = %#v, want fallback message and code %d", diagnostic.Data, test.code)
+			}
+		})
 	}
 }
 

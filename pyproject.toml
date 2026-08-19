@@ -57,12 +57,8 @@ explicit_package_bases = true
 ignore_missing_imports = true
 warn_unused_configs = true
 files = [
-    "src/_core/__init__.py",
-    "src/_core/_permissions.py",
-    "src/_features/_facebook/__init__.py",
-    "src/_features/_thread/__init__.py",
-    "src/_messaging/__init__.py",
-    "scripts/verify_distribution.py",
+    "src",
+    "scripts",
 ]
 
 [tool.pytest.ini_options]

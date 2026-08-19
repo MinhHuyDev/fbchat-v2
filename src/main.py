@@ -145,15 +145,15 @@ class SimpleBot:
         listener_task = asyncio.create_task(
             self.listener.connect_mqtt(), name="fbchat-e2ee-listener"
         )
-        ready = await asyncio.to_thread(
-            self.listener.wait_until_connected,
-            DEFAULT_E2EE_READY_TIMEOUT,
-            require_e2ee=True,
-        )
-        if not ready:
-            raise RuntimeError("E2EE listener chưa sẵn sàng trước timeout.")
-        log("bot", "E2EE listener đã sẵn sàng. Nhấn Ctrl+C để thoát.")
         try:
+            ready = await asyncio.to_thread(
+                self.listener.wait_until_connected,
+                DEFAULT_E2EE_READY_TIMEOUT,
+                require_e2ee=True,
+            )
+            if not ready:
+                raise RuntimeError("E2EE listener chưa sẵn sàng trước timeout.")
+            log("bot", "E2EE listener đã sẵn sàng. Nhấn Ctrl+C để thoát.")
             while True:
                 if listener_task.done():
                     listener_task.result()
@@ -171,16 +171,24 @@ class SimpleBot:
 
     async def _shutdown_listener(self, listener_task: asyncio.Task[None]) -> None:
         """Dừng bridge E2EE và chờ task listener thoát gọn."""
-        self.listener.stop()
+        await asyncio.to_thread(self.listener.stop)
         try:
-            await asyncio.wait_for(listener_task, timeout=5)
+            await asyncio.wait_for(asyncio.shield(listener_task), timeout=5)
         except asyncio.TimeoutError:
             listener_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await listener_task
         except asyncio.CancelledError:
-            listener_task.cancel()
+            if listener_task.cancelled():
+                return
+            if not listener_task.done():
+                listener_task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await listener_task
             raise
+        except Exception:
+            # Cleanup không được che mất lỗi startup/runtime gốc của run().
+            pass
 
     def _forward_listener_event(
         self, loop: asyncio.AbstractEventLoop, event: dict[str, Any]

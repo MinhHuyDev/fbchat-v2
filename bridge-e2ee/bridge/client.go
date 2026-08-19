@@ -15,6 +15,7 @@ import (
 	"sort"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -73,6 +74,7 @@ type Client struct {
 	recentMessagesMu    sync.Mutex
 	recentMessageSweep  int64
 	liveMessageCutoffMs int64
+	regularConnected    atomic.Bool
 }
 
 // ClientConfig for creating a new client
@@ -179,15 +181,26 @@ func NewClient(cfg *ClientConfig) (*Client, error) {
 	}
 
 	// Set event handler
-	msgClient.SetEventHandler(client.handleEvent)
+	msgClient.SetEventHandler(client.handleMessagixEvent)
 
 	return client, nil
+}
+
+func (c *Client) handleMessagixEvent(ctx context.Context, evt any) {
+	switch evt.(type) {
+	case *messagix.Event_Ready, *messagix.Event_Reconnected:
+		c.regularConnected.Store(true)
+	case *messagix.Event_SocketError, *messagix.Event_PermanentError:
+		c.regularConnected.Store(false)
+	}
+	c.handleEvent(ctx, evt)
 }
 
 // Connect connects to Messenger
 func (c *Client) Connect() (*UserInfo, *InitialData, error) {
 	c.connectMu.Lock()
 	defer c.connectMu.Unlock()
+	c.regularConnected.Store(false)
 	if err := c.lifecycleError(); err != nil {
 		return nil, nil, err
 	}
@@ -219,6 +232,7 @@ func (c *Client) Connect() (*UserInfo, *InitialData, error) {
 		return nil, nil, err
 	}
 	if err := c.Messagix.Connect(c.ctx); err != nil {
+		c.regularConnected.Store(false)
 		return nil, nil, err
 	}
 	if err := c.lifecycleError(); err != nil {
@@ -287,6 +301,7 @@ func (c *Client) ConnectE2EE() error {
 // Disconnect disconnects from Messenger
 func (c *Client) Disconnect() {
 	c.disconnectOnce.Do(func() {
+		c.regularConnected.Store(false)
 		if c.cancel != nil {
 			c.cancel()
 		}
@@ -348,17 +363,29 @@ func (c *Client) snapshotE2EEClient() *whatsmeow.Client {
 	return c.E2EE
 }
 
+type e2eeConnectionState interface {
+	IsConnected() bool
+	IsLoggedIn() bool
+}
+
+func isE2EEReady(state e2eeConnectionState) bool {
+	return state != nil && state.IsConnected() && state.IsLoggedIn()
+}
+
 // IsConnected returns true if connected
 func (c *Client) IsConnected() bool {
 	c.lifecycleMu.RLock()
 	defer c.lifecycleMu.RUnlock()
-	return !c.disconnected && c.Messagix != nil && c.ctx != nil && c.ctx.Err() == nil
+	return !c.disconnected && c.Messagix != nil && c.ctx != nil && c.ctx.Err() == nil && c.regularConnected.Load()
 }
 
 // IsE2EEConnected returns true if E2EE is connected
 func (c *Client) IsE2EEConnected() bool {
 	e2eeClient := c.snapshotE2EEClient()
-	return e2eeClient != nil && e2eeClient.IsConnected()
+	if e2eeClient == nil {
+		return false
+	}
+	return isE2EEReady(e2eeClient)
 }
 
 // Events returns the event channel

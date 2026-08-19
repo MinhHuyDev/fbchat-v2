@@ -286,7 +286,7 @@ def _match_theme(themes: list[dict[str, Any]], themeName: str) -> dict[str, Any]
 
 
 def _findTheme_blocking(dataFB: dict[str, Any], themeName: str) -> dict[str, Any]:
-    listed = listThemes(dataFB)
+    listed = _listThemes_blocking(dataFB)
     if listed.get("error"):
         return listed
 
@@ -367,7 +367,7 @@ def _changeTheme_blocking(
     if str(themeName).strip().lower() == "list":
         return _listThemes_blocking(dataFB)
 
-    themeResult = findTheme(dataFB, themeName)
+    themeResult = _findTheme_blocking(dataFB, themeName)
     if themeResult.get("error"):
         return themeResult
 
@@ -499,11 +499,11 @@ async def func(
     if action == "list" or str(themeName or "").strip().lower() == "list":
         return await listThemes(dataFB)
     if action == "find":
-        return await findTheme(dataFB, themeName)
+        return await findTheme(dataFB, themeName or "")
     return await changeTheme(
         dataFB,
-        threadID,
-        themeName,
+        threadID or "",
+        themeName or "",
         initiatorID=kwargs.get("initiatorID"),
         timeout=kwargs.get("timeout", _DEFAULT_TIMEOUT),
     )

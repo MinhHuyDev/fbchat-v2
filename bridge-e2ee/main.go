@@ -6,22 +6,26 @@
 // Protocol
 // --------
 // Request  (Python -> bridge): one JSON object per line:
-//     {"id": <int>, "method": "<name>", "params": {...}}
+//
+//	{"id": <int>, "method": "<name>", "params": {...}}
 //
 // Response (bridge -> Python): one JSON object per line:
-//     {"id": <int>, "ok": true,  "data": {...}}
-//     {"id": <int>, "ok": false, "error": "..."}
+//
+//	{"id": <int>, "ok": true,  "data": {...}}
+//	{"id": <int>, "ok": false, "error": "..."}
 //
 // Async event (bridge -> Python): one JSON object per line, no id:
-//     {"event": {"type": "<name>", "data": {...}, "timestamp": <ms>}}
 //
-// Methods: newClient, connect, connectE2EE, isConnected, disconnect,
+//	{"event": {"type": "<name>", "data": {...}, "timestamp": <ms>}}
+//
+// Methods: hello, newClient, connect, connectE2EE, isConnected, disconnect,
 // sendMessage, sendReaction, sendE2EEMessage, sendE2EEReaction,
 // sendImage, sendFile, sendE2EESticker, sendE2EEVideo, sendE2EEDocument.
 //
 // Build:
-//     go mod tidy
-//     go build -ldflags="-s -w" -o ../build/fbchat-bridge-e2ee.exe .
+//
+//	go mod tidy
+//	go build -ldflags="-s -w" -o ../build/fbchat-bridge-e2ee.exe .
 package main
 
 import (
@@ -52,6 +56,20 @@ type eventEnvelope struct {
 	Event *bridge.Event `json:"event"`
 }
 
+const bridgeProtocolVersion = 1
+
+// bridgeVersion is intentionally overridable with -ldflags
+// "-X main.bridgeVersion=<version>" for release builds.
+var bridgeVersion = "2.2.2"
+
+var bridgeCapabilities = []string{
+	"newClient",
+	"connect",
+	"connectE2EE",
+	"isConnected",
+	"events",
+}
+
 var (
 	client   *bridge.Client
 	stdoutMu sync.Mutex
@@ -73,6 +91,14 @@ func fail(id uint64, err error) {
 	writeJSON(response{ID: id, OK: false, Error: err.Error()})
 }
 
+func helloPayload() map[string]interface{} {
+	return map[string]interface{}{
+		"protocolVersion": bridgeProtocolVersion,
+		"bridgeVersion":   bridgeVersion,
+		"capabilities":    bridgeCapabilities,
+	}
+}
+
 // pumpEvents copies events from the client to stdout asynchronously.
 func pumpEvents(c *bridge.Client) {
 	for evt := range c.Events() {
@@ -85,6 +111,9 @@ func pumpEvents(c *bridge.Client) {
 
 func handle(req *request) {
 	switch req.Method {
+	case "hello":
+		ok(req.ID, helloPayload())
+
 	case "newClient":
 		if client != nil {
 			fail(req.ID, fmt.Errorf("client already created"))

@@ -93,3 +93,35 @@ async def test_disconnect_delegates_blocking_work_to_thread():
 
     to_thread.assert_awaited_once_with(disconnect_blocking)
     disconnect_blocking.assert_not_called()
+
+
+def test_pending_mqtt_queue_refreshes_sequence_synchronously():
+    listener = listeningEvent({"FacebookID": "bot"})
+    refresh = Mock(side_effect=lambda: setattr(listener, "lastSeqID", 42))
+    listener.get_last_seq_id_blocking = refresh
+    listener.get_last_seq_id = Mock()
+    client = Mock()
+
+    listener._publish_pending_queue(client)
+
+    refresh.assert_called_once_with()
+    listener.get_last_seq_id.assert_not_called()
+    client.publish.assert_called_once()
+
+
+def test_mqtt_overflow_refreshes_sequence_synchronously():
+    listener = listeningEvent({"FacebookID": "bot"})
+    listener.syncToken = "stale-token"
+    listener.lastSeqID = 12
+    refresh = Mock(side_effect=lambda: setattr(listener, "lastSeqID", 42))
+    listener.get_last_seq_id_blocking = refresh
+    listener.get_last_seq_id = Mock()
+    listener._publish_pending_queue = Mock()
+    message = Mock(payload=b'{"errorCode":100}')
+    client = Mock()
+
+    listener._on_message(client, None, message)
+
+    refresh.assert_called_once_with()
+    listener.get_last_seq_id.assert_not_called()
+    listener._publish_pending_queue.assert_called_once_with(client)

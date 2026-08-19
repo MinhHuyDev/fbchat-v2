@@ -243,13 +243,21 @@ func (c *Client) handleEvent(ctx context.Context, evt any) {
 		c.emitEvent(EventTypeReconnected, nil)
 
 	case *messagix.Event_SocketError:
+		message := "Messenger socket disconnected"
+		if e.Err != nil {
+			message = e.Err.Error()
+		}
 		c.emitEvent(EventTypeError, &ErrorEvent{
-			Message: e.Err.Error(),
+			Message: message,
 		})
 
 	case *messagix.Event_PermanentError:
+		message := "Messenger connection failed permanently"
+		if e.Err != nil {
+			message = e.Err.Error()
+		}
 		c.emitEvent(EventTypeError, &ErrorEvent{
-			Message: e.Err.Error(),
+			Message: message,
 			Code:    1,
 		})
 
