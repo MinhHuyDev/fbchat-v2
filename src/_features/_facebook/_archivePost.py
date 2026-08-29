@@ -32,7 +32,7 @@ _DOC_ID = 25498450883167126
 
 
 def _build_form(
-    dataFB: dict[str, Any], postID: str , typePost: str = "my_post"
+    dataFB: dict[str, Any], postID: str, typePost: str = "my_post"
 ) -> dict[str, Any]:
     if not str(postID).strip():
         raise ValueError("ID bài viết không được để trống.")
@@ -53,23 +53,25 @@ def _build_form(
                 "story_location": "TIMELINE",
                 "surface": "POST_CHEVRON_MENU_TIMELINE",
                 "actor_id": dataFB["FacebookID"],
-                "client_mutation_id": "1"
+                "client_mutation_id": "1",
             }
         },
         separators=(",", ":"),
     )
-    
+
     return data_form
 
 
 def _parse_result(payload: dict[str, Any]) -> dict[str, Any]:
+    errors = payload.get("errors") or []
+    message = (
+        errors[0].get("message") if errors and isinstance(errors[0], dict) else None
+    )
     try:
         status = payload["data"]["archive_story"]["success"]
     except (KeyError, TypeError):
-        errors = payload.get("errors") or []
-        message = (
-            errors[0].get("message") if errors and isinstance(errors[0], dict) else None
-        )
+        status = False
+    if errors or not status:
         return {
             "error": 1,
             "messages": message or "Facebook không phản hồi hợp lệ.",
@@ -90,4 +92,3 @@ async def func(
         client=client,
     )
     return _parse_result(payload)
-

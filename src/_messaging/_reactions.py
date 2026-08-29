@@ -72,7 +72,6 @@ def _build_request(
     }
 
 
-
 async def func(
     dataFB: dict[str, Any],
     typeAdded: str,

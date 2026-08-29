@@ -56,7 +56,6 @@ def _parse_result(payload: dict[str, Any], status_choice: bool) -> dict[str, str
     return formatResults("success", f"{action} quản trị viên thành công.")
 
 
-
 async def func(
     dataFB: dict[str, Any],
     threadID: str | int,

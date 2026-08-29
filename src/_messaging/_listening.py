@@ -88,9 +88,7 @@ class listeningEvent:
         except Empty:
             return None
 
-    async def get_message(
-        self, timeout: float | None = None
-    ) -> dict[str, Any] | None:
+    async def get_message(self, timeout: float | None = None) -> dict[str, Any] | None:
         """Chờ một tin nhắn mà không chặn event loop."""
         return await asyncio.to_thread(self.get_message_blocking, True, timeout)
 
@@ -209,7 +207,7 @@ class listeningEvent:
         if self.syncToken is None or self.lastSeqID is None:
             if self.syncToken is not None:
                 self.syncToken = None
-            self.get_last_seq_id()
+            self.get_last_seq_id_blocking()
         if self.lastSeqID is None:
             print(
                 "Không có last_seq_id; hãy làm mới cookie Facebook rồi khởi động lại."
@@ -272,7 +270,7 @@ class listeningEvent:
         if is_overflow and self.retry_count < self.max_retries:
             self.retry_count += 1
             self.syncToken = None
-            self.get_last_seq_id()
+            self.get_last_seq_id_blocking()
             if self.lastSeqID is not None:
                 self._publish_pending_queue(client)
                 return
@@ -355,4 +353,4 @@ class listeningEvent:
             self.mqtt.disconnect()
 
     async def disconnect(self) -> None:
-        self.disconnect()
+        await asyncio.to_thread(self.disconnect_blocking)

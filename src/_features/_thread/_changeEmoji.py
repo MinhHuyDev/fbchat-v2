@@ -49,7 +49,6 @@ def _parse_result(payload: dict[str, Any]) -> dict[str, str]:
     return formatResults("success", "Thay đổi emoji mặc định thành công.")
 
 
-
 async def func(
     dataFB: dict[str, Any],
     threadID: str | int,

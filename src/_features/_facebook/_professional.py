@@ -69,7 +69,6 @@ def _parse_response(payload: dict[str, Any], enabled: bool) -> dict[str, Any]:
     }
 
 
-
 async def func(
     dataFB: dict[str, Any],
     statusBusiness: bool | str | None = None,

@@ -258,6 +258,7 @@ def _parse_detail_result(payload: dict[str, Any]) -> dict[str, Any]:
             "messages": _error_message(payload, "Không thể đọc thông tin sản phẩm."),
         }
 
+
 async def createItem(
     dataFB: dict[str, Any],
     nameItem: str,

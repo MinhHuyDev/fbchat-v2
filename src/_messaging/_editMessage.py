@@ -23,7 +23,7 @@ import json
 import ssl
 import asyncio
 from threading import Event
-from typing import Any
+from typing import Any, TypedDict
 from urllib.parse import urlparse
 
 import paho.mqtt.client as mqtt
@@ -40,6 +40,15 @@ LS_TOPIC = "/ls_req"
 MQTT_HOST = "edge-chat.facebook.com"
 EDIT_MESSAGE_VERSION_ID = "6903494529735864"
 _DEFAULT_TIMEOUT = 20
+
+
+class _PublishState(TypedDict):
+    """Trạng thái dùng chung giữa các callback MQTT của một lần publish."""
+
+    published: int
+    errors: list[str]
+
+
 _MISSING = object()
 
 
@@ -145,7 +154,7 @@ def _publish_ls_requests(
 
     connected = Event()
     published = Event()
-    state = {
+    state: _PublishState = {
         "published": 0,
         "errors": [],
     }
@@ -283,7 +292,9 @@ async def editMessage(
     newText: str,
     timeout: int = _DEFAULT_TIMEOUT,
 ) -> dict[str, Any]:
-    return await asyncio.to_thread(_editMessage_blocking, dataFB, messageID, newText, timeout)
+    return await asyncio.to_thread(
+        _editMessage_blocking, dataFB, messageID, newText, timeout
+    )
 
 
 async def func(

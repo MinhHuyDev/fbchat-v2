@@ -43,9 +43,13 @@ def _parse_response(payload: dict[str, Any], userID: str | int) -> dict[str, Any
             "messages": "Không tìm thấy hồ sơ người dùng trong response.",
         }
 
-    gender = profile.get("gender")
-    gender_label = {1: "Female (Nữ)", 2: "Male (Nam)"}.get(
-        gender, "Unknown (Không xác định)"
+    raw_gender = profile.get("gender")
+    gender = raw_gender if isinstance(raw_gender, int) else None
+    gender_labels = {1: "Female (Nữ)", 2: "Male (Nam)"}
+    gender_label = (
+        gender_labels.get(gender, "Unknown (Không xác định)")
+        if gender is not None
+        else "Unknown (Không xác định)"
     )
     return {
         "idUser": profile.get("id"),
@@ -60,7 +64,6 @@ def _parse_response(payload: dict[str, Any], userID: str | int) -> dict[str, Any
         "alternateName": profile.get("alternateName"),
         "chatWithUSerIsNonFriend": profile.get("is_nonfriend_messenger_contact"),
     }
-
 
 
 async def func(

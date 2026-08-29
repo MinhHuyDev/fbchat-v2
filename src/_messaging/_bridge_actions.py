@@ -1,22 +1,3 @@
-"""
-Đường dẫn file:
-  src/_messaging/_bridge_actions.py
-
-Mục đích:
-  - Giao tiếp với Bridge cho các kết nối đặc thù (như WebSockets E2EE).
-
-Cách hoạt động:
-  - Nạp dependency/guard cần thiết, thực hiện các async HTTP requests tới API nội bộ hoặc GraphQL của Facebook.
-  - Các thao tác request đều phải thông qua httpx.AsyncClient và module _core._utils để bảo đảm an toàn kết nối.
-  - Payload gửi đi/nhận về được xử lý JSON cẩn thận, bắt lỗi try-except đầy đủ để tránh crash hệ thống.
-
-File liên quan:
-  - src/main.py và các entrypoint khác.
-  - Phụ thuộc vào _core._session, _core._utils để khởi tạo và thao tác HTTP.
-
-Author: @m008v (MinhHuyDev)
-"""
-
 """API mức cao cho các JSON-RPC action của bridge E2EE."""
 
 from __future__ import annotations
@@ -39,11 +20,11 @@ class BridgeActions:
         return await self._bridge.call(method, params)
 
     def edit_message_blocking(self, message_id: str, new_text: str) -> dict[str, Any]:
-        return self._call_blocking("editMessage", {"messageId": message_id, "newText": new_text})
+        return self._call_blocking(
+            "editMessage", {"messageId": message_id, "newText": new_text}
+        )
 
-    async def edit_message(
-        self, message_id: str, new_text: str
-    ) -> dict[str, Any]:
+    async def edit_message(self, message_id: str, new_text: str) -> dict[str, Any]:
         return await self._call(
             "editMessage", {"messageId": message_id, "newText": new_text}
         )
@@ -82,7 +63,9 @@ class BridgeActions:
             self._e2ee_message_params(chat_jid, message_id, new_text),
         )
 
-    def unsend_e2ee_message_blocking(self, chat_jid: str, message_id: str) -> dict[str, Any]:
+    def unsend_e2ee_message_blocking(
+        self, chat_jid: str, message_id: str
+    ) -> dict[str, Any]:
         return self._call_blocking(
             "unsendE2EEMessage", self._e2ee_message_params(chat_jid, message_id)
         )
@@ -133,22 +116,20 @@ class BridgeActions:
             "markRead", {"threadId": thread_id, "watermarkTs": watermark_ts}
         )
 
-    async def mark_read(
-        self, thread_id: int, watermark_ts: int
-    ) -> dict[str, Any]:
+    async def mark_read(self, thread_id: int, watermark_ts: int) -> dict[str, Any]:
         return await self._call(
             "markRead", {"threadId": thread_id, "watermarkTs": watermark_ts}
         )
 
-    def send_e2ee_typing_blocking(self, chat_jid: str, is_typing: bool) -> dict[str, Any]:
+    def send_e2ee_typing_blocking(
+        self, chat_jid: str, is_typing: bool
+    ) -> dict[str, Any]:
         return self._call_blocking(
             "sendE2EETyping",
             {"chatJid": normalize_chat_jid(chat_jid), "isTyping": is_typing},
         )
 
-    async def send_e2ee_typing(
-        self, chat_jid: str, is_typing: bool
-    ) -> dict[str, Any]:
+    async def send_e2ee_typing(self, chat_jid: str, is_typing: bool) -> dict[str, Any]:
         return await self._call(
             "sendE2EETyping",
             {"chatJid": normalize_chat_jid(chat_jid), "isTyping": is_typing},

@@ -108,7 +108,6 @@ def _parse_response(text: str) -> dict[str, Any]:
     }
 
 
-
 async def func(
     dataFB: dict[str, Any], *, client: httpx.AsyncClient | None = None
 ) -> dict[str, Any]:

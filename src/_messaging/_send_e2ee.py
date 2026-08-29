@@ -1,23 +1,4 @@
 """
-Đường dẫn file:
-  src/_messaging/_send_e2ee.py
-
-Mục đích:
-  - Gửi tin nhắn mã hoá đầu cuối (E2EE).
-
-Cách hoạt động:
-  - Nạp dependency/guard cần thiết, thực hiện các async HTTP requests tới API nội bộ hoặc GraphQL của Facebook.
-  - Các thao tác request đều phải thông qua httpx.AsyncClient và module _core._utils để bảo đảm an toàn kết nối.
-  - Payload gửi đi/nhận về được xử lý JSON cẩn thận, bắt lỗi try-except đầy đủ để tránh crash hệ thống.
-
-File liên quan:
-  - src/main.py và các entrypoint khác.
-  - Phụ thuộc vào _core._session, _core._utils để khởi tạo và thao tác HTTP.
-
-Author: @m008v (MinhHuyDev)
-"""
-
-"""
 fbchat-v2 :: _send_e2ee.py
 ==========================
 
@@ -72,7 +53,6 @@ from _messaging._listening_e2ee import (
     listeningE2EEEvent,
     _REQUIRED_COOKIES,
 )
-
 
 E2EE_MESSENGER_SERVER = "msgr"
 
@@ -173,7 +153,7 @@ class api:
         self._owns_bridge = listener is None  # standalone → ta tự đóng
 
         # Standalone-only state
-        self.dataFB = dataFB
+        self.dataFB: dict[str, Any] | None = dataFB
         self.log_level = log_level
         self.device_path = device_path
         self.e2ee_memory_only = e2ee_memory_only
@@ -183,10 +163,10 @@ class api:
 
         # Compat fields giống _send.api
         self.results: dict[str, Any] = {}
-        self.chat_jid = None
-        self.content = None
-        self.replyToId = None
-        self.replyToSenderJid = None
+        self.chat_jid: str | None = None
+        self.content: str | None = None
+        self.replyToId: str | None = None
+        self.replyToSenderJid: str | None = None
 
     # ------------------------------------------------------------------
     @property
@@ -216,6 +196,10 @@ class api:
         if self._connected:
             return {"already": True}
 
+        data_fb = self.dataFB
+        if data_fb is None:
+            raise RuntimeError("Standalone sender không có dữ liệu phiên Facebook.")
+
         binary = (
             Path(self._binary_path_override)
             if self._binary_path_override
@@ -223,7 +207,7 @@ class api:
         )
         self._bridge = _BridgeProcess(binary)
 
-        cks = parse_cookie_string(self.dataFB["cookieFacebook"])
+        cks = parse_cookie_string(data_fb["cookieFacebook"])
         missing = [c for c in _REQUIRED_COOKIES if c not in cks]
         if missing:
             self._bridge.close()

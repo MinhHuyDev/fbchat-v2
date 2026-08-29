@@ -144,9 +144,12 @@ def _response_excerpt(text: str, limit: int = 600) -> str:
 
 def _parse_upload_error(root: Any, text: str) -> dict[str, Any]:
     if isinstance(root, dict):
-        payload = root.get("payload") if isinstance(root.get("payload"), dict) else {}
+        raw_payload = root.get("payload")
+        payload: dict[str, Any] = raw_payload if isinstance(raw_payload, dict) else {}
         metadata = payload.get("metadata") if isinstance(payload, dict) else None
-        metadata_items = list(metadata.values()) if isinstance(metadata, dict) else metadata
+        metadata_items = (
+            list(metadata.values()) if isinstance(metadata, dict) else metadata
+        )
         rejected_all_files = (
             isinstance(metadata_items, list | tuple)
             and metadata_items
@@ -239,6 +242,7 @@ def _upload_blocking(
     include_error: bool = False,
 ) -> dict[str, Any] | None:
     request = _build_request(filenames, dataFB)
+    response: httpx.Response | requests.Response
     try:
         if client is not None:
             response = client.post(**request)

@@ -59,7 +59,6 @@ def _parse_response(payload: dict[str, Any]) -> dict[str, Any]:
     return {"error": 1, "messages": message or "Tạo trang cá nhân bổ sung thất bại."}
 
 
-
 async def func(
     dataFB: dict[str, Any],
     newName: str,

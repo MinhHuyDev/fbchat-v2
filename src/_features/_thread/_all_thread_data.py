@@ -150,7 +150,6 @@ def _build_result(response: httpx.Response, elapsed: float) -> dict[str, Any]:
     }
 
 
-
 async def func(
     dataFB: dict[str, Any], *, client: httpx.AsyncClient | None = None
 ) -> dict[str, Any]:

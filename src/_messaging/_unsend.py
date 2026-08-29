@@ -55,7 +55,6 @@ def _parse_response(text: str) -> dict[str, Any]:
     return {"success": 1, "messages": "Thu hồi tin nhắn thành công."}
 
 
-
 async def func(
     messageID: str,
     dataFB: dict[str, Any],

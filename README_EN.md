@@ -7,7 +7,7 @@
 [![Status](https://img.shields.io/badge/status-active-22c55e)](https://github.com/MinhHuyDev/fbchat-v2)
 [![PyPI](https://img.shields.io/pypi/v/fbchat-v2?color=3775A9&logo=pypi&logoColor=white)](https://pypi.org/project/fbchat-v2/)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![Version](https://img.shields.io/badge/version-2.2.0-blue)](https://github.com/MinhHuyDev/fbchat-v2/releases)
+[![Version](https://img.shields.io/badge/version-2.2.2-blue)](https://github.com/MinhHuyDev/fbchat-v2/releases)
 [![Issues](https://img.shields.io/github/issues/MinhHuyDev/fbchat-v2?color=orange)](https://github.com/MinhHuyDev/fbchat-v2/issues)
 [![License](https://img.shields.io/badge/license-See%20LICENSE-lightgrey)](LICENSE)
 [![Telegram](https://img.shields.io/badge/Telegram-MinhHuyDev-26A5E4?logo=telegram&logoColor=white)](https://t.me/MinhHuyDev)
@@ -20,7 +20,7 @@
 
 
 > [!IMPORTANT]
-> This is version `v2.2.0`, which uses *httpx.Client* instead of the old *requests* flow and now ships with **async/await** support. Because of that, code syntax may change or conflict with the version you are currently using. If you still want to use **requests** (*no async/await*), click here: [v2.1.4](https://github.com/m008v/fbchat-v2/tree/v2.1.4)
+> This is version `v2.2.2`, which uses *httpx.Client* instead of the old *requests* flow and now ships with **async/await** support. Because of that, code syntax may change or conflict with the version you are currently using. If you still want to use **requests** (*no async/await*), click here: [v2.1.4](https://github.com/m008v/fbchat-v2/tree/v2.1.4)
 
 > [!WARNING]
 > **Disclaimer** - This is **not** an official Facebook product. Facebook already provides an official chatbot API [here](https://developers.facebook.com/docs/messenger-platform/). `fbchat-v2` is different because it authenticates with a **real Facebook user account / cookie**, which comes with security risks. Think carefully before using it.
@@ -234,29 +234,25 @@ source .venv/bin/activate
 ### 3. Install Python dependencies
 
 ```bash
-pip install --upgrade pip
-pip install -e .
+python -m pip install --upgrade pip
+python -m pip install -e .
 ```
 
 Quick check:
 
 ```bash
-python -c "import requests, paho.mqtt.client, attr, pyotp; print('OK')"
+python -c "import _core, _features, _messaging; from _features._facebook import _unFriend; print('OK')"
 ```
 
-### 4. Allow imports from `src/`
+### 4. Verify the installed packages
 
-When running scripts from the project root, expose `src/` so modules such as `_core`, `_features`, and `_messaging` import correctly:
+Both editable installs and wheels must expose `_core`, `_features`, and `_messaging` directly:
 
 ```bash
-# Windows (PowerShell)
-$env:PYTHONPATH = "src"
-
-# macOS / Linux
-export PYTHONPATH=src
+python scripts/verify_distribution.py
 ```
 
-You can also import manually with the full `src.` prefix.
+You do not need `PYTHONPATH=src`, and imports must not use a `src.` prefix.
 
 ### 5. *(Optional)* Build the E2EE bridge - for 1-1 messages
 
@@ -359,6 +355,8 @@ Example:
   "admins": [
     "1000xxxxxxxxxx"
   ],
+  "log_message_content": false,
+  "debug_errors": false,
   "version": "0.0.1"
 }
 ```
@@ -368,10 +366,15 @@ Example:
 | `cookies` | Yes | Facebook session cookie as a string |
 | `prefix` | No | Command prefix, defaults to `/` |
 | `admins` | No | List of Facebook IDs allowed to use admin commands |
+| `log_message_content` | No | Allow plaintext message logging; defaults to `false` for privacy |
+| `debug_errors` | No | Print detailed payloads/tracebacks; defaults to `false` |
 | `botName` | No | Config metadata, currently unused by the sample bot |
 | `version` | No | Config metadata, currently unused by the sample bot |
 
-`src/config.json` is gitignored. Do not use `config.example.json` to store real cookies.
+`src/config.json` is gitignored, and the sample bot restricts it to mode `0600`
+on POSIX or a current-user/SYSTEM ACL on Windows. Do not store real cookies in
+`config.example.json`, and only enable the two logging options while debugging
+in a controlled environment.
 
 ---
 
@@ -601,11 +604,16 @@ pytest tests/ -v --tb=short
 Recommended gates before committing:
 
 ```bash
-python -m compileall -q src tests
-ruff check src tests
-ruff format --check src tests
+python -m compileall -q src tests scripts
+ruff check src tests scripts
+black --check src tests scripts
+mypy
+python -m build --wheel
+python scripts/verify_distribution.py dist/fbchat_v2-2.2.2-py3-none-any.whl
 git diff --check
 ```
+
+CI installs the wheel and editable project into separate clean virtual environments before running the import smoke test.
 
 For the bridge:
 

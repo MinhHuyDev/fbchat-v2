@@ -9,12 +9,11 @@ from _core._utils import formAll, post_form_json_async
 _URL = "https://www.facebook.com/api/graphql/"
 _DOC_ID = 8752443744796374
 
-def _build_form(
-    dataFB: dict[str, Any], friendID: str
-) -> dict[str, Any]:
+
+def _build_form(dataFB: dict[str, Any], friendID: str) -> dict[str, Any]:
     if not str(friendID).strip():
         raise ValueError("ID bạn bè không được để trống.")
-    friend_Params = f'restrictedUserNode{friendID}'
+    friend_Params = f"restrictedUserNode{friendID}"
     friendID_Base64 = base64.b64encode(friend_Params.encode()).decode()
     data_form = formAll(dataFB, "FriendingCometUnfriendMutation", _DOC_ID)
     data_form["variables"] = json.dumps(
@@ -23,9 +22,9 @@ def _build_form(
                 "source": "friending_jewel",
                 "unfriended_user_id": friendID_Base64,
                 "actor_id": dataFB["FacebookID"],
-                "client_mutation_id": "1"
+                "client_mutation_id": "1",
             },
-            "scale": 3
+            "scale": 3,
         },
         separators=(",", ":"),
     )
@@ -33,18 +32,27 @@ def _build_form(
 
 
 def _parse_result(payload: dict[str, Any]) -> dict[str, Any]:
-    try:
-        status = payload["data"]
-    except (KeyError, TypeError):
-        errors = payload.get("errors") or []
-        message = (
-            errors[0].get("message") if errors and isinstance(errors[0], dict) else None
-        )
+    errors = payload.get("errors") or []
+    message = (
+        errors[0].get("message") if errors and isinstance(errors[0], dict) else None
+    )
+    data = payload.get("data")
+    if errors or not isinstance(data, dict) or not data or _has_failed_success(data):
         return {
             "error": 1,
             "messages": message or "Facebook không phản hồi hợp lệ.",
         }
     return {"success": 1, "messages": "Xóa bạn bè thành công!"}
+
+
+def _has_failed_success(value: Any) -> bool:
+    if isinstance(value, dict):
+        if "success" in value and not value["success"]:
+            return True
+        return any(_has_failed_success(item) for item in value.values())
+    if isinstance(value, list):
+        return any(_has_failed_success(item) for item in value)
+    return False
 
 
 async def func(
@@ -59,4 +67,3 @@ async def func(
         client=client,
     )
     return _parse_result(payload)
-

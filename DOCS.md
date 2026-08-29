@@ -78,9 +78,11 @@ git clone --branch beta-async/await --recurse-submodules https://github.com/Minh
 cd fbchat-v2
 python -m venv .venv
 python -m pip install -e ".[dev]"
+python scripts/verify_distribution.py
 ```
 
 Editable install làm cho các package `_core`, `_features` và `_messaging` import được từ mọi script trong virtual environment.
+Không cần đặt `PYTHONPATH=src` hoặc thêm prefix `src.` vào import.
 
 ```python
 from _core._session import dataGetHome
@@ -889,13 +891,20 @@ Bot mẫu là reference cho lifecycle, không phải framework bot production.
 {
   "prefix": "/",
   "cookies": "c_user=...; xs=...; fr=...; datr=...;",
-  "admins": ["100012345678"]
+  "admins": ["100012345678"],
+  "log_message_content": false,
+  "debug_errors": false
 }
 ```
 
+Cookie được giữ trong file riêng tư (`0600` trên POSIX hoặc ACL chỉ dành cho
+user hiện tại/SYSTEM trên Windows). Nội dung chat và chi tiết exception bị che
+mặc định; chỉ bật `log_message_content` hoặc `debug_errors` trong môi trường
+debug được kiểm soát.
+
 ### Luồng runtime
 
-1. `load_config()` validate `prefix` và `admins`.
+1. `load_config()` siết quyền file và validate `prefix`, `admins` cùng hai cờ log.
 2. `FileSessionStorage` đưa cookie vào `await dataGetHome(...)`.
 3. `is_valid_datafb()` kiểm tra token bắt buộc.
 4. Một `httpx.AsyncClient` được dùng lại cho command HTTP.
@@ -1072,11 +1081,16 @@ pytest tests/ -v --tb=short
 Lint, format và compile:
 
 ```bash
-ruff check src tests
-ruff format --check src tests
-python -m compileall -q src tests
+ruff check src tests scripts
+black --check src tests scripts
+mypy
+python -m compileall -q src tests scripts
+python -m build --wheel
+python scripts/verify_distribution.py dist/fbchat_v2-2.2.2-py3-none-any.whl
 git diff --check
 ```
+
+CI còn cài riêng wheel và editable install vào virtual environment sạch để xác minh `_core`, `_features`, `_messaging` và export `_unFriend`.
 
 Bridge:
 

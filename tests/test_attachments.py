@@ -121,8 +121,7 @@ def test_parse_response_can_return_non_json_upload_error_excerpt():
 
 def test_parse_response_marks_null_metadata_as_file_rejected():
     resp_text = (
-        'for (;;);{"__ar":1,"payload":{"uploadID":null,'
-        '"metadata":{"0":null}}}'
+        'for (;;);{"__ar":1,"payload":{"uploadID":null,' '"metadata":{"0":null}}}'
     )
     result = _parse_response(resp_text, include_error=True)
     assert result is not None

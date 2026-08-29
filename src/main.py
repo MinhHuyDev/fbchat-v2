@@ -1,22 +1,3 @@
-"""
-Đường dẫn file:
-  src/main.py
-
-Mục đích:
-  - Khởi tạo bot mẫu, demo các luồng gọi async của fbchat-v2.
-
-Cách hoạt động:
-  - Nạp dependency/guard cần thiết, thực hiện các async HTTP requests tới API nội bộ hoặc GraphQL của Facebook.
-  - Các thao tác request đều phải thông qua httpx.AsyncClient và module _core._utils để bảo đảm an toàn kết nối.
-  - Payload gửi đi/nhận về được xử lý JSON cẩn thận, bắt lỗi try-except đầy đủ để tránh crash hệ thống.
-
-File liên quan:
-  - src/main.py và các entrypoint khác.
-  - Phụ thuộc vào _core._session, _core._utils để khởi tạo và thao tác HTTP.
-
-Author: @m008v (MinhHuyDev)
-"""
-
 """Bot mẫu async-first cho fbchat-v2."""
 
 from __future__ import annotations
@@ -27,6 +8,7 @@ import json
 import sys
 import time
 import traceback
+from collections import deque
 from collections.abc import Awaitable, Callable
 from datetime import datetime
 from pathlib import Path
@@ -34,6 +16,7 @@ from typing import Any
 
 import httpx
 
+from _core._permissions import create_private_json_file, set_private_file_permissions
 from _core._session import dataGetHome
 from _core._storage import FileSessionStorage
 from _features._facebook import _search
@@ -46,6 +29,22 @@ Handler = Callable[[dict[str, Any], str], Awaitable[None]]
 DEFAULT_HTTP_TIMEOUT = 30.0
 DEFAULT_E2EE_READY_TIMEOUT = 90.0
 EVENT_QUEUE_MAXSIZE = 1000
+RECENT_MESSAGE_IDS_MAXSIZE = 4096
+MESSAGE_EVENT_TYPES = frozenset({"message", "e2eeMessage"})
+CONTROL_EVENT_TYPES = frozenset(
+    {
+        "ready",
+        "e2eeConnected",
+        "reconnected",
+        "disconnected",
+        "closed",
+        "error",
+    }
+)
+FORWARDED_EVENT_TYPES = MESSAGE_EVENT_TYPES | CONTROL_EVENT_TYPES
+
+_create_private_config = create_private_json_file
+_set_private_file_permissions = set_private_file_permissions
 
 
 def load_config() -> dict[str, Any]:
@@ -55,22 +54,29 @@ def load_config() -> dict[str, Any]:
             "cookies": "PASTE_YOUR_FACEBOOK_COOKIE_HERE",
             "prefix": "/",
             "admins": [],
+            "log_message_content": False,
+            "debug_errors": False,
         }
-        CONFIG_PATH.write_text(
-            json.dumps(template, indent=2, ensure_ascii=False), encoding="utf-8"
-        )
-        raise RuntimeError(
-            f"Đã tạo template tại {CONFIG_PATH}. Điền cookies rồi chạy lại."
-        )
+        if _create_private_config(CONFIG_PATH, template):
+            raise RuntimeError(
+                f"Đã tạo template riêng tư tại {CONFIG_PATH}. Điền cookies rồi chạy lại."
+            )
 
+    _set_private_file_permissions(CONFIG_PATH)
     with CONFIG_PATH.open("r", encoding="utf-8") as file_handle:
         config = json.load(file_handle)
     config.setdefault("prefix", "/")
     config.setdefault("admins", [])
+    config.setdefault("log_message_content", False)
+    config.setdefault("debug_errors", False)
     if not isinstance(config["prefix"], str) or not config["prefix"]:
         raise ValueError("config.prefix phải là chuỗi không rỗng.")
     if not isinstance(config["admins"], list):
         raise ValueError("config.admins phải là một danh sách ID.")
+    if not isinstance(config["log_message_content"], bool):
+        raise ValueError("config.log_message_content phải là true hoặc false.")
+    if not isinstance(config["debug_errors"], bool):
+        raise ValueError("config.debug_errors phải là true hoặc false.")
     return config
 
 
@@ -103,17 +109,23 @@ class SimpleBot:
         *,
         prefix: str = "/",
         admins: list[Any] | None = None,
+        log_message_content: bool = False,
+        debug_errors: bool = False,
         http_client: httpx.AsyncClient | None = None,
     ) -> None:
         self.dataFB = dataFB
         self.prefix = prefix
         self.admins = {str(admin_id) for admin_id in admins or []}
+        self.log_message_content = log_message_content
+        self.debug_errors = debug_errors
         self.http_client = http_client
-        self.listener = listeningE2EEEvent(dataFB)
+        self.listener = listeningE2EEEvent(dataFB, debug_errors=debug_errors)
         self._event_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue(
             maxsize=EVENT_QUEUE_MAXSIZE
         )
-        self._last_seen_message_id: str | None = None
+        self._recent_message_ids: deque[str] = deque()
+        self._recent_message_id_set: set[str] = set()
+        self._dropped_message_events = 0
         self._last_bot_message: dict[str, tuple[str, str]] = {}
         self._handlers: dict[str, Handler] = {
             "ping": self._cmd_ping,
@@ -128,20 +140,20 @@ class SimpleBot:
         log("bot", f"Đăng nhập E2EE với UID = {self.dataFB.get('FacebookID')}")
         loop = asyncio.get_running_loop()
         self.listener.on_message(
-            lambda event: loop.call_soon_threadsafe(self._queue_event, event)
+            lambda event: self._forward_listener_event(loop, event)
         )
         listener_task = asyncio.create_task(
             self.listener.connect_mqtt(), name="fbchat-e2ee-listener"
         )
-        ready = await asyncio.to_thread(
-            self.listener.wait_until_connected,
-            DEFAULT_E2EE_READY_TIMEOUT,
-            require_e2ee=True,
-        )
-        if not ready:
-            raise RuntimeError("E2EE listener chưa sẵn sàng trước timeout.")
-        log("bot", "E2EE listener đã sẵn sàng. Nhấn Ctrl+C để thoát.")
         try:
+            ready = await asyncio.to_thread(
+                self.listener.wait_until_connected,
+                DEFAULT_E2EE_READY_TIMEOUT,
+                require_e2ee=True,
+            )
+            if not ready:
+                raise RuntimeError("E2EE listener chưa sẵn sàng trước timeout.")
+            log("bot", "E2EE listener đã sẵn sàng. Nhấn Ctrl+C để thoát.")
             while True:
                 if listener_task.done():
                     listener_task.result()
@@ -159,24 +171,72 @@ class SimpleBot:
 
     async def _shutdown_listener(self, listener_task: asyncio.Task[None]) -> None:
         """Dừng bridge E2EE và chờ task listener thoát gọn."""
-        self.listener.stop()
+        await asyncio.to_thread(self.listener.stop)
         try:
-            await asyncio.wait_for(listener_task, timeout=5)
+            await asyncio.wait_for(asyncio.shield(listener_task), timeout=5)
         except asyncio.TimeoutError:
             listener_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await listener_task
         except asyncio.CancelledError:
-            listener_task.cancel()
+            if listener_task.cancelled():
+                return
+            if not listener_task.done():
+                listener_task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await listener_task
             raise
+        except Exception:
+            # Cleanup không được che mất lỗi startup/runtime gốc của run().
+            pass
+
+    def _forward_listener_event(
+        self, loop: asyncio.AbstractEventLoop, event: dict[str, Any]
+    ) -> None:
+        """Lọc event ngay trên listener thread trước khi chạm asyncio queue."""
+        if not isinstance(event, dict):
+            return
+        if event.get("type") not in FORWARDED_EVENT_TYPES:
+            return
+        try:
+            loop.call_soon_threadsafe(self._queue_event, event)
+        except RuntimeError:
+            if self.debug_errors:
+                log("queue", "Bỏ qua event vì asyncio loop đã đóng.")
 
     def _queue_event(self, event: dict[str, Any]) -> None:
+        event_type = event.get("type")
+        if event_type not in MESSAGE_EVENT_TYPES:
+            # Control event được xử lý ngay trên event loop, còn
+            # typing/receipt/reaction/raw bị loại trước queue message.
+            if event_type in CONTROL_EVENT_TYPES:
+                self._message_from_event(event)
+            return
         try:
             self._event_queue.put_nowait(event)
         except asyncio.QueueFull:
             with contextlib.suppress(asyncio.QueueEmpty):
                 self._event_queue.get_nowait()
             self._event_queue.put_nowait(event)
+            self._dropped_message_events += 1
+            # Log theo lũy thừa hai để có telemetry mà không tự tạo log storm.
+            if self._dropped_message_events & (self._dropped_message_events - 1) == 0:
+                log(
+                    "queue",
+                    "Queue message đầy; đã loại "
+                    f"{self._dropped_message_events} event cũ (không log nội dung).",
+                )
+
+    def _remember_message_id(self, message_id: str) -> bool:
+        """Ghi nhận ID hợp lệ; trả về False nếu event đã được xử lý."""
+        if message_id in self._recent_message_id_set:
+            return False
+        if len(self._recent_message_ids) >= RECENT_MESSAGE_IDS_MAXSIZE:
+            oldest = self._recent_message_ids.popleft()
+            self._recent_message_id_set.discard(oldest)
+        self._recent_message_ids.append(message_id)
+        self._recent_message_id_set.add(message_id)
+        return True
 
     async def _get_event(self, timeout: float | None = None) -> dict[str, Any] | None:
         try:
@@ -184,10 +244,10 @@ class SimpleBot:
         except asyncio.TimeoutError:
             return None
 
-    @staticmethod
-    def _message_from_event(event: dict[str, Any]) -> dict[str, Any] | None:
+    def _message_from_event(self, event: dict[str, Any]) -> dict[str, Any] | None:
         event_type = event.get("type")
-        data = event.get("data") or {}
+        raw_data = event.get("data")
+        data = raw_data if isinstance(raw_data, dict) else {}
 
         if event_type in {
             "ready",
@@ -196,15 +256,17 @@ class SimpleBot:
             "disconnected",
             "closed",
         }:
-            log("e2ee", f"{event_type}: {data}")
+            log("e2ee", str(event_type))
             return None
         if event_type == "error":
-            log("e2ee", f"bridge error: {data}")
+            if self.debug_errors:
+                log("e2ee", f"bridge error: {data}")
+            else:
+                log("e2ee", "bridge error (chi tiết đã được ẩn)")
             return None
-        if event_type == "raw":
-            return None
-        if event_type not in {"e2eeMessage", "message"}:
-            log("e2ee", f"Bỏ qua event không phải message: {event_type}")
+        if event_type not in MESSAGE_EVENT_TYPES:
+            if self.debug_errors and event_type not in {"raw", None}:
+                log("e2ee", f"Bỏ qua event phụ trợ: {event_type}")
             return None
 
         chat_jid = data.get("chatJid")
@@ -224,17 +286,29 @@ class SimpleBot:
         }
 
     async def _dispatch(self, message: dict[str, Any]) -> None:
-        message_id = message.get("messageID")
+        message_id = str(message.get("messageID") or "").strip()
         body = message.get("body")
-        if not message_id or message_id == self._last_seen_message_id:
+        sender_id = str(message.get("userID") or "").strip()
+        if not message_id or not sender_id or not isinstance(body, str) or not body:
+            if self.debug_errors:
+                log(
+                    "recv",
+                    "Bỏ qua message thiếu ID, sender hoặc nội dung; "
+                    f"keys={sorted(message)}",
+                )
             return
-        self._last_seen_message_id = str(message_id)
 
-        sender_id = str(message.get("userID") or "")
-        if sender_id == str(self.dataFB.get("FacebookID")) or not body:
+        if sender_id == str(self.dataFB.get("FacebookID")):
+            if self.debug_errors:
+                log("recv", "Bỏ qua message do chính tài khoản bot gửi.")
             return
         target = message.get("chatJid") or message.get("replyToID")
-        log("recv", f"[{message.get('type')}] {sender_id}@{target}: {body!r}")
+        body_for_log = (
+            repr(body)
+            if self.log_message_content
+            else f"<redacted length={len(str(body))}>"
+        )
+        log("recv", f"[{message.get('type')}] {sender_id}@{target}: {body_for_log}")
         if not str(body).startswith(self.prefix):
             return
 
@@ -246,13 +320,23 @@ class SimpleBot:
         argument = parts[1] if len(parts) > 1 else ""
         handler = self._handlers.get(command)
         if handler is None:
-            log("cmd", f"Bỏ qua lệnh không tồn tại: {command}")
+            detail = command if self.log_message_content else "<redacted>"
+            log("cmd", f"Bỏ qua lệnh không tồn tại: {detail}")
+            return
+        if not self._remember_message_id(message_id):
             return
         try:
             await handler(message, argument)
         except Exception as error:  # bot không được chết vì một lệnh lỗi
-            log("err", f"Lỗi khi xử lý /{command}: {error}")
-            traceback.print_exc()
+            if self.debug_errors:
+                log("err", f"Lỗi khi xử lý /{command}: {error}")
+                traceback.print_exc()
+            else:
+                log(
+                    "err",
+                    f"Lỗi {type(error).__name__} khi xử lý /{command}; "
+                    "bật debug_errors để xem chi tiết.",
+                )
 
     async def _reply(self, message: dict[str, Any], content: str) -> None:
         chat_jid = message.get("chatJid")
@@ -266,14 +350,23 @@ class SimpleBot:
             message_id = result.get("messageId") or result.get("id")
             if message_id:
                 self._last_bot_message[str(chat_jid)] = (str(chat_jid), str(message_id))
-                log("send", f"E2EE -> {chat_jid}: {content!r}")
+                content_for_log = (
+                    repr(content)
+                    if self.log_message_content
+                    else f"<redacted length={len(content)}>"
+                )
+                log("send", f"E2EE -> {chat_jid}: {content_for_log}")
             else:
-                log("send", f"E2EE FAIL -> {chat_jid}: {result}")
+                log("send", f"E2EE FAIL -> {chat_jid}; keys={sorted(result)}")
             return
 
         thread_id = message.get("replyToID")
         if not thread_id:
-            log("send", f"Bỏ qua reply vì thiếu chatJid/threadID: {message}")
+            log(
+                "send",
+                "Bỏ qua reply vì thiếu chatJid/threadID "
+                f"(messageID={message.get('messageID')!r}).",
+            )
             return
         result = await self.listener.send_message(
             int(thread_id),
@@ -282,9 +375,14 @@ class SimpleBot:
         )
         message_id = result.get("messageId") or result.get("id")
         if message_id:
-            log("send", f"regular -> {thread_id}: {content!r}")
+            content_for_log = (
+                repr(content)
+                if self.log_message_content
+                else f"<redacted length={len(content)}>"
+            )
+            log("send", f"regular -> {thread_id}: {content_for_log}")
         else:
-            log("send", f"regular FAIL -> {thread_id}: {result}")
+            log("send", f"regular FAIL -> {thread_id}; keys={sorted(result)}")
 
     async def _cmd_ping(self, message: dict[str, Any], argument: str) -> None:
         sent_ts = int(message.get("timestamp") or 0)
@@ -345,11 +443,15 @@ class SimpleBot:
             return
         chat_jid = str(message.get("chatJid") or "")
         if not chat_jid:
-            await self._reply(message, "Lệnh unsend E2EE cần chatJid, chat thường không dùng được.")
+            await self._reply(
+                message, "Lệnh unsend E2EE cần chatJid, chat thường không dùng được."
+            )
             return
         target = self._last_bot_message.get(chat_jid)
         if not target:
-            await self._reply(message, "ℹ️ Chưa có tin E2EE nào để thu hồi trong chat này.")
+            await self._reply(
+                message, "ℹ️ Chưa có tin E2EE nào để thu hồi trong chat này."
+            )
             return
         target_chat_jid, target_message_id = target
         if self.listener._bridge is None:
@@ -358,7 +460,7 @@ class SimpleBot:
         result = await BridgeActions(self.listener._bridge).unsend_e2ee_message(
             target_chat_jid, target_message_id
         )
-        log("unsend", f"{target_message_id} -> {result}")
+        log("unsend", f"{target_message_id}; keys={sorted(result)}")
         self._last_bot_message.pop(chat_jid, None)
 
 
@@ -377,6 +479,8 @@ async def main() -> None:
             dataFB,
             prefix=config["prefix"],
             admins=config["admins"],
+            log_message_content=config["log_message_content"],
+            debug_errors=config["debug_errors"],
             http_client=http_client,
         )
         await bot.run()
