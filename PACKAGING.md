@@ -86,10 +86,10 @@ twine upload .artifacts/v2.3.0/fbchat_v2-2.3.0-py3-none-any.whl .artifacts/v2.3.
 ## 🔗 E2EE bridge
 
 Binary Go `fbchat-bridge-e2ee` **không** được đóng gói trong wheel. Bản `v2.3.0`
-chỉ tự tải binary khi package có checksum của đúng GitHub Release. Trước khi các
-asset `v2.3.0` tồn tại, user phải tự build bridge cùng version và trỏ thủ công
-qua `FBCHAT_E2EE_BIN`; cơ chế này cố ý fail-closed thay vì chạy binary không rõ
-nguồn gốc.
+nhúng checksum của đúng năm binary từ GitHub Release `v2.3.0` và tự tải asset
+phù hợp vào cache khi cần. Downloader pin repository, tag, asset path, host,
+redirect, kích thước và SHA-256; trường hợp không khớp sẽ fail-closed. User vẫn
+có thể tự build bridge cùng version và trỏ thủ công qua `FBCHAT_E2EE_BIN`.
 
 ```bash
 pip install fbchat-v2          # core + async/httpx runtime

@@ -66,6 +66,7 @@ from fbchat_v2._messaging._bridge_checksums import BRIDGE_RELEASE_VERSION, BRIDG
 
 _MAX_BRIDGE_SIZE = 200 * 1024 * 1024
 _RELEASE_VERSION_PATTERN = re.compile(r"[0-9A-Za-z][0-9A-Za-z._+-]*")
+_GITHUB_RELEASE_REPOSITORY = "m008v/fbchat-v2"
 _TRUSTED_DOWNLOAD_HOSTS = {
     "api.github.com",
     "github.com",
@@ -103,26 +104,41 @@ def _binary_name() -> str:
 
 def _default_binary_path() -> Path:
     name = _binary_name()
-    here = Path(__file__).resolve()
-    project_root = here.parents[2]
-    if _is_source_checkout():
+    project_root = _source_project_root()
+    if project_root is not None and _is_source_checkout():
         return project_root / "build" / name
 
     if sys.platform.startswith("win"):
         cache_root = Path(os.environ.get("LOCALAPPDATA") or Path.home())
     else:
         cache_root = Path(os.environ.get("XDG_CACHE_HOME") or (Path.home() / ".cache"))
-    return cache_root / "fbchat-v2" / "bridge" / f"v{_PACKAGE_VERSION}" / name
+    package_version = _expected_package_version()
+    return cache_root / "fbchat-v2" / "bridge" / f"v{package_version}" / name
+
+
+def _source_project_root() -> Path | None:
+    """Tìm project root cho cả layout `src/_messaging` và `src/fbchat_v2`."""
+    here = Path(__file__).resolve()
+    for parent_index in (2, 3):
+        try:
+            candidate = here.parents[parent_index]
+        except IndexError:  # pragma: no cover - đường dẫn module luôn đủ sâu
+            continue
+        if (candidate / "pyproject.toml").is_file():
+            return candidate
+    return None
 
 
 def _is_source_checkout() -> bool:
-    return (Path(__file__).resolve().parents[2] / "pyproject.toml").is_file()
+    project_root = _source_project_root()
+    return project_root is not None and (project_root / "bridge-e2ee").is_dir()
 
 
 def _expected_package_version() -> str:
     """Resolve version from the checkout instead of stale installed metadata."""
-    if _is_source_checkout():
-        pyproject = Path(__file__).resolve().parents[2] / "pyproject.toml"
+    project_root = _source_project_root()
+    if project_root is not None:
+        pyproject = project_root / "pyproject.toml"
         match = re.search(
             r'^version\s*=\s*"([0-9A-Za-z][0-9A-Za-z._+-]*)"\s*$',
             pyproject.read_text(encoding="utf-8"),
@@ -136,7 +152,10 @@ def _expected_package_version() -> str:
 
 def _source_bridge_inputs() -> list[Path]:
     """Liệt kê source/asset có thể làm thay đổi bridge được build."""
-    bridge_root = Path(__file__).resolve().parents[2] / "bridge-e2ee"
+    project_root = _source_project_root()
+    if project_root is None:
+        return []
+    bridge_root = project_root / "bridge-e2ee"
     inputs = {
         path
         for path in bridge_root.rglob("*.go")
@@ -168,9 +187,7 @@ def _source_bridge_is_stale(binary: Path) -> bool:
 
 
 def _release_version_and_digest(binary_name: str) -> tuple[str, str]:
-    package_version = (
-        _PACKAGE_VERSION if BRIDGE_RELEASE_VERSION else _expected_package_version()
-    )
+    package_version = _expected_package_version()
     release_version = BRIDGE_RELEASE_VERSION or package_version
     if not _RELEASE_VERSION_PATTERN.fullmatch(release_version):
         raise RuntimeError("Phiên bản package không hợp lệ để tải bridge an toàn.")
@@ -278,7 +295,7 @@ def _download_bridge(target_path: Path) -> None:
 
     release_tag = f"v{release_version}"
     api_url = (
-        "https://api.github.com/repos/MinhHuyDev/fbchat-v2/releases/tags/"
+        f"https://api.github.com/repos/{_GITHUB_RELEASE_REPOSITORY}/releases/tags/"
         f"{release_tag}"
     )
     temporary_path: Path | None = None
@@ -309,7 +326,8 @@ def _download_bridge(target_path: Path) -> None:
         if (parsed_url.hostname or "").lower() != "github.com":
             raise RuntimeError("GitHub API trả về asset URL không chính thức.")
         expected_path = (
-            f"/MinhHuyDev/fbchat-v2/releases/download/{release_tag}/{binary_name}"
+            f"/{_GITHUB_RELEASE_REPOSITORY}/releases/download/"
+            f"{release_tag}/{binary_name}"
         )
         if unquote(parsed_url.path) != expected_path:
             raise RuntimeError("GitHub API trả về asset ngoài release đã pin.")
@@ -420,8 +438,8 @@ def _resolve_binary() -> Path:
             raise FileNotFoundError(
                 f"{e}\n"
                 f"Vui lòng tự build: cd fbchat-v2/bridge-e2ee && go build -o ../build/{candidate.name} .\n"
-                "Hoặc đặt FBCHAT_E2EE_BIN; source checkout chỉ tự tải khi có "
-                "FBCHAT_E2EE_SHA256 tin cậy."
+                "Hoặc đặt FBCHAT_E2EE_BIN; source checkout không có checksum nhúng "
+                "cần FBCHAT_E2EE_SHA256 tin cậy."
             ) from e
     return candidate
 

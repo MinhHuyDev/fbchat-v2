@@ -243,9 +243,12 @@ Không cần đặt `PYTHONPATH=src`; mọi import bắt đầu bằng `fbchat_v
 
 Nếu bạn chỉ cần nhận tin nhắn nhóm, **bỏ qua bước này**. Ngược lại, tin nhắn cá nhân (E2EE) cần binary Go `fbchat-bridge-e2ee`.
 
-Package `2.3.0` fail-closed khi chưa có checksum của GitHub Release tương ứng.
-Cho tới khi asset `v2.3.0` được phát hành, hãy tự build bridge cùng version và đặt
-`FBCHAT_E2EE_BIN`; package không âm thầm tải hoặc chạy binary không được xác minh.
+Package `2.3.0` đã nhúng checksum của đủ năm binary trong GitHub Release
+`v2.3.0`. Ở lần chạy đầu, listener tự tải đúng asset Windows x64, Linux
+x64/ARM64 hoặc macOS x64/ARM64 vào cache riêng, rồi kiểm tra tag, URL, kích
+thước và SHA-256 trước khi chạy. Với nền tảng chưa được hỗ trợ hoặc khi muốn tự
+quản binary, hãy build cùng version và đặt `FBCHAT_E2EE_BIN`; package vẫn
+fail-closed nếu binary không xác minh được.
 
 #### 5.1. Cài Go toolchain
 

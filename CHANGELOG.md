@@ -50,8 +50,9 @@ phiên bản tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
   namespace nội bộ `src`; thêm smoke test cho wheel và sdist cài sạch.
 - CI enforce compile, Ruff, Black, mypy, pytest Python 3.10-3.14, Go test/vet,
   package smoke test và JavaScript syntax.
-- Auto-download bridge chỉ được bật khi package chứa checksum của đúng năm binary;
-  package fail-closed cho tới khi asset GitHub Release `v2.3.0` được phát hành.
+- Nhúng checksum của đúng năm binary từ GitHub Release `v2.3.0`; auto-download
+  pin canonical repository/tag/path và fail-closed nếu URL, digest hoặc nội dung
+  tải về không khớp.
 
 ## [2.2.0-beta] - 2026-07-06
 

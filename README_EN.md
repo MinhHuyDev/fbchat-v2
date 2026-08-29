@@ -249,10 +249,13 @@ You do not need `PYTHONPATH=src`; all imports start with `fbchat_v2.`.
 
 If you only need to receive group messages, **skip this step**. Personal messages (E2EE) require the Go binary `fbchat-bridge-e2ee`.
 
-Package `2.3.0` fails closed until checksums for the matching GitHub Release are
-available. Until the `v2.3.0` assets are published, build a bridge with the same
-version and set `FBCHAT_E2EE_BIN`; the package will not silently download or run
-an unverified binary.
+Package `2.3.0` embeds checksums for all five binaries in GitHub Release
+`v2.3.0`. On first use, the listener downloads the matching Windows x64, Linux
+x64/ARM64, or macOS x64/ARM64 asset into a dedicated cache and verifies its tag,
+URL, size, and SHA-256 before execution. On unsupported platforms, or when you
+want to manage the binary yourself, build the same version and set
+`FBCHAT_E2EE_BIN`; the package still fails closed if the binary cannot be
+verified.
 
 #### 5.1. Install the Go toolchain
 
