@@ -12,7 +12,7 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 DISTIBUTION_NAME = "fbchat-v2"
-EXPECTED_VERSION = "2.2.2"
+EXPECTED_VERSION = "2.3.0"
 PACKAGE_NAMES = ("_core", "_features", "_messaging")
 REQUIRED_WHEEL_MEMBERS = {
     "_core/__init__.py",

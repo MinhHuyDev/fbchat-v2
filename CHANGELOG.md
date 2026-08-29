@@ -7,7 +7,11 @@ phiên bản tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
-## [Unreleased] - async-first hardening
+## [Unreleased]
+
+## [2.3.0] - 2026-08-29
+
+### Changed
 
 - Chuyển các feature HTTP sang transport `httpx` sync/async dùng chung; legacy adapter chỉ còn ở boundary nội bộ có lý do rõ.
 - Viết lại bot mẫu, listener thường, listener E2EE và bridge actions với lifecycle async rõ ràng.
@@ -15,8 +19,6 @@ phiên bản tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 - Chặn SSRF ở Go `downloadMedia`; nâng Go 1.26.5 và `golang.org/x/net` v0.55.0 để xử lý toàn bộ vulnerability có call path mà `govulncheck` phát hiện.
 - Sửa lỗi gỡ admin báo sai action, `professional` xử lý bool, profile bổ sung dựng header sai, Marketplace khóa nhầm category và post âm thầm bỏ attachment.
 - Viết lại tài liệu hiện hành theo async/await. Các mục release cũ bên dưới là lịch sử và có thể nhắc API sync đã tồn tại tại thời điểm phát hành.
-
-## [2.2.2] - 2026-08-19
 
 ### Security
 
@@ -46,10 +48,10 @@ phiên bản tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 - Wheel export đúng `_core`, `_features`, `_messaging` thay vì namespace `src`;
   thêm smoke test cho wheel và editable install sạch.
-- CI enforce compile, Ruff, Black, mypy, pytest Python 3.10-3.13, Go test/vet,
+- CI enforce compile, Ruff, Black, mypy, pytest Python 3.10-3.14, Go test/vet,
   package smoke test và JavaScript syntax.
 - Release tạo `SHA256SUMS`, provenance attestation và nhúng checksum của năm
-  bridge binary vào wheel `2.2.2`.
+  bridge binary vào wheel `2.3.0`.
 
 ## [2.2.0-beta] - 2026-07-06
 

@@ -1,8 +1,8 @@
 # 🚀 fbchat-v2 v2.3.0 — Hoàn thiện refactor và hardening runtime
 
-> **Trạng thái:** Tài liệu chuẩn bị phát hành. Source refactor đã được merge vào
-> `main`, nhưng tag, package và artifact `v2.3.0` chỉ được coi là chính thức sau
-> khi toàn bộ version metadata khớp và release workflow hoàn tất.
+> **Trạng thái:** Source refactor và version metadata đã được đồng bộ cho
+> `v2.3.0`. Tag, package và artifact chỉ được coi là chính thức sau khi release
+> workflow hoàn tất.
 
 `v2.3.0` hoàn thiện đợt refactor async-first của `fbchat-v2`, tập trung vào
 lifecycle E2EE, độ tin cậy của message pipeline, bảo vệ dữ liệu phiên và quy
@@ -149,10 +149,9 @@ Mỗi tag release phải vượt qua:
 - đối chiếu đúng năm bridge binary, `SHA256SUMS` và checksum nhúng trong package;
 - provenance attestation trước khi publish GitHub Release và PyPI.
 
-Source đã merge vào `main` vượt qua
-[quality gate hiện hành](https://github.com/m008v/fbchat-v2/actions/runs/33254435063).
-Artifact `v2.3.0`, post-release clean install và canary tài khoản Facebook thật
-vẫn phải được xác minh sau khi đồng bộ version metadata và tạo tag.
+Source và mọi thay đổi version trên `main` đều phải vượt qua quality gate hiện
+hành. Artifact `v2.3.0`, post-release clean install và canary tài khoản Facebook
+thật vẫn phải được xác minh sau khi tạo tag và chạy release workflow.
 
 ## ⚠️ Giới hạn đã biết
 
