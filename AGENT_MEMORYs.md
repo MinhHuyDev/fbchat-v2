@@ -1,5 +1,31 @@
 # Agent Memories
 
+## 2026-08-29 — Hoàn tất phát hành PyPI v2.3.0
+
+### Mục tiêu
+- Phát hành hai distribution đã xác minh của `fbchat-v2==2.3.0` lên PyPI và kiểm tra cài đặt trực tiếp từ registry.
+
+### Đã thực hiện
+- Nạp API token qua Windows keyring, không đưa credential vào source, command line hoặc log.
+- Build lại wheel và sdist bằng Hatchling 1.27.0 để giữ metadata 2.4 cho sdist; wheel cuối được dựng từ sdist và khớp artifact đã attest.
+- Upload wheel và sdist bằng Twine 7.0.0 lên `https://upload.pypi.org/legacy/`.
+- Xác minh release công khai tại `https://pypi.org/project/fbchat-v2/2.3.0/` và clean-install trực tiếp từ PyPI.
+
+### Quyết định kỹ thuật
+- Không dùng artifact build cô lập đầu tiên vì dependency drift sinh metadata 2.5 mà Twine 6.2.0 cũ không đọc được; dùng toolchain release có phiên bản rõ ràng và Twine 7.0.0 để kiểm tra artifact cuối.
+- Không upload các artifact 2.1.6 còn sót trong `dist/`; chỉ upload đúng hai file trong `.artifacts/publish-final`.
+- Giữ token trong keyring; không tạo `.pypirc` chứa secret trong repository.
+
+### Kiểm tra
+- Ruff, Black, mypy 43 source file và 5/5 regression test package đều đạt.
+- Twine strict đạt cho cả hai artifact; audit không phát hiện config, token, cache, test hoặc binary bị nhúng.
+- Wheel SHA-256: `85834073ee11be664a83f3e2db13a6d70fad47f7577605e2c6c4552dacefc1b5`.
+- Sdist SHA-256: `69750e05846fcab08a590d76a21736161fb6021eb954a4e230b3bd6e80572e07`.
+- PyPI JSON trả đúng hai hash; fresh install `fbchat-v2==2.3.0`, `pip check`, import và version smoke đều đạt.
+
+### Việc còn lại
+- Nên pin build backend trong quy trình release để dependency drift không tiếp tục đổi metadata hoặc tính tái lập của artifact.
+
 ## 2026-08-29 — Đồng bộ refactor v2.3.0 và phát hành PyPI
 
 ### Mục tiêu
