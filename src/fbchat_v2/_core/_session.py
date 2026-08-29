@@ -1,3 +1,22 @@
+"""
+Đường dẫn file:
+  src/fbchat_v2/_core/_session.py
+
+Mục đích:
+  - Khởi tạo và duy trì session, parse token (fb_dtsg, sessionID) từ homepage Facebook.
+
+Cách hoạt động:
+  - Nạp dependency/guard cần thiết, thực hiện các async HTTP requests tới API nội bộ hoặc GraphQL của Facebook.
+  - Các thao tác request đều phải thông qua httpx.AsyncClient và module _core._utils để bảo đảm an toàn kết nối.
+  - Payload gửi đi/nhận về được xử lý JSON cẩn thận, bắt lỗi try-except đầy đủ để tránh crash hệ thống.
+
+File liên quan:
+  - src/main.py và các entrypoint khác.
+  - Phụ thuộc vào _core._session, _core._utils để khởi tạo và thao tác HTTP.
+
+Author: @m008v (MinhHuyDev)
+"""
+
 from __future__ import annotations
 
 import httpx
@@ -38,16 +57,16 @@ def _build_home_request(setCookies: str) -> dict[str, Any]:
             "dpr": "1.25",
             "priority": "u=0, i",
             "sec-ch-prefers-color-scheme": "dark",
-            "sec-ch-ua": '"Chromium";v="140", "Not=A-Brand";v="24", "Google Chrome";v="140"',
-            "sec-ch-ua-full-version-list": '"Chromium";v="140.0.7339.128", "Not=A-Brand";v="24.0.0.0", "Google Chrome";v="140.0.7339.128"',
-            "sec-ch-ua-mobile": "-0",
+            "sec-ch-ua": '"Chromium";v="140", "Not=A?Brand";v="24", "Google Chrome";v="140"',
+            "sec-ch-ua-full-version-list": '"Chromium";v="140.0.7339.128", "Not=A?Brand";v="24.0.0.0", "Google Chrome";v="140.0.7339.128"',
+            "sec-ch-ua-mobile": "?0",
             "sec-ch-ua-model": '""',
             "sec-ch-ua-platform": '"Windows"',
             "sec-ch-ua-platform-version": '"19.0.0"',
             "sec-fetch-dest": "document",
             "sec-fetch-mode": "navigate",
             "sec-fetch-site": "same-origin",
-            "sec-fetch-user": "-1",
+            "sec-fetch-user": "?1",
             "upgrade-insecure-requests": "1",
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
             "viewport-width": "493",
@@ -133,7 +152,7 @@ def _dataGetHome_blocking(
 async def dataGetHome(
     setCookies: str | None = None, storage: SessionStorage | None = None
 ) -> dict[str, Any] | None:
-    """Async version của dataGetHome - dùng cho async context."""
+    """Async version của dataGetHome — dùng cho async context."""
     setCookies = _resolve_cookies(setCookies, storage)
     if not setCookies:
         print("[session] Không có cookie để khởi tạo session.")

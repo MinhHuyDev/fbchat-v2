@@ -1,3 +1,22 @@
+"""
+Đường dẫn file:
+  src/fbchat_v2/_features/_facebook/_get_user_info.py
+
+Mục đích:
+  - Truy xuất thông tin (profile) của một người dùng bất kỳ.
+
+Cách hoạt động:
+  - Nạp dependency/guard cần thiết, thực hiện các async HTTP requests tới API nội bộ hoặc GraphQL của Facebook.
+  - Các thao tác request đều phải thông qua httpx.AsyncClient và module _core._utils để bảo đảm an toàn kết nối.
+  - Payload gửi đi/nhận về được xử lý JSON cẩn thận, bắt lỗi try-except đầy đủ để tránh crash hệ thống.
+
+File liên quan:
+  - src/main.py và các entrypoint khác.
+  - Phụ thuộc vào _core._session, _core._utils để khởi tạo và thao tác HTTP.
+
+Author: @m008v (MinhHuyDev)
+"""
+
 from __future__ import annotations
 
 from typing import Any
@@ -24,9 +43,13 @@ def _parse_response(payload: dict[str, Any], userID: str | int) -> dict[str, Any
             "messages": "Không tìm thấy hồ sơ người dùng trong response.",
         }
 
-    gender = profile.get("gender")
-    gender_label = {1: "Female (Nữ)", 2: "Male (Nam)"}.get(
-        gender, "Unknown (Không xác định)"
+    raw_gender = profile.get("gender")
+    gender = raw_gender if isinstance(raw_gender, int) else None
+    gender_labels = {1: "Female (Nữ)", 2: "Male (Nam)"}
+    gender_label = (
+        gender_labels.get(gender, "Unknown (Không xác định)")
+        if gender is not None
+        else "Unknown (Không xác định)"
     )
     return {
         "idUser": profile.get("id"),
@@ -41,7 +64,6 @@ def _parse_response(payload: dict[str, Any], userID: str | int) -> dict[str, Any
         "alternateName": profile.get("alternateName"),
         "chatWithUSerIsNonFriend": profile.get("is_nonfriend_messenger_contact"),
     }
-
 
 
 async def func(

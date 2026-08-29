@@ -1,3 +1,22 @@
+"""
+Đường dẫn file:
+  src/fbchat_v2/_features/_thread/_changeNameThread.py
+
+Mục đích:
+  - Đổi tên nhóm chat.
+
+Cách hoạt động:
+  - Nạp dependency/guard cần thiết, thực hiện các async HTTP requests tới API nội bộ hoặc GraphQL của Facebook.
+  - Các thao tác request đều phải thông qua httpx.AsyncClient và module _core._utils để bảo đảm an toàn kết nối.
+  - Payload gửi đi/nhận về được xử lý JSON cẩn thận, bắt lỗi try-except đầy đủ để tránh crash hệ thống.
+
+File liên quan:
+  - src/main.py và các entrypoint khác.
+  - Phụ thuộc vào _core._session, _core._utils để khởi tạo và thao tác HTTP.
+
+Author: @m008v (MinhHuyDev)
+"""
+
 from __future__ import annotations
 
 import random
@@ -70,7 +89,6 @@ def _parse_result(payload: dict[str, Any]) -> dict[str, str]:
     if error:
         return formatResults("error", f"Facebook từ chối đổi tên: {error}.")
     return formatResults("success", "Thay đổi tên cuộc trò chuyện thành công.")
-
 
 
 async def func(

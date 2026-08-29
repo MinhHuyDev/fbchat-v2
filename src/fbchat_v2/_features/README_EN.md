@@ -2,9 +2,10 @@
 
 > Facebook account actions and thread administration built on `_core`'s `dataFB` contract and `httpx` transport.
 
-[Main README](../../README_EN.md) | [Tiếng Việt](README.md) | [API guide](../../DOCS.md)
+[![Tiếng Việt](https://img.shields.io/badge/Ti%E1%BA%BFng%20Vi%E1%BB%87t-0b8ecf?style=flat-square)](README.md)
+[![DOCS](https://img.shields.io/badge/DOCS-2563eb?style=flat-square)](../../DOCS.md)
 
-## Contents
+## 📋 Contents
 
 - [Responsibilities](#responsibilities)
 - [Directory layout](#directory-layout)
@@ -20,7 +21,7 @@
 
 ---
 
-## Responsibilities
+## 🎯 Responsibilities
 
 `_features` contains business operations beyond basic send and receive:
 
@@ -36,14 +37,16 @@ The layer receives `dataFB` from `_core._session.dataGetHome()`. It does not rea
 
 ---
 
-## Directory layout
+## 🏗️ Directory layout
 
 ```text
-src/_features/
+src/fbchat_v2/_features/
 ├── _facebook/
+│   ├── _archivePost.py          # Archive a timeline post
 │   ├── _blocking.py             # Block/unblock a user
 │   ├── _changeBio.py            # Update bio
 │   ├── _createPost.py           # Create a timeline post
+│   ├── _deletePost.py           # Delete a timeline post
 │   ├── _get_user_info.py        # Profile information
 │   ├── _marketplace.py          # Marketplace create/read
 │   ├── _notification.py         # Notifications
@@ -62,14 +65,16 @@ src/_features/
 
 ---
 
-## Public API
+## 🌐 Public API
 
 `_features._facebook.__all__`:
 
 ```python
 [
+    "_archivePost",
     "_changeBio",
     "_createPost",
+    "_deletePost",
     "_professional",
     "_search",
     "_blocking",
@@ -104,7 +109,7 @@ changed = await _changeEmoji.func(data_fb, "thread-id", "🔥")
 
 ---
 
-## Async call contract
+## 📝 Async call contract
 
 Every network feature in this directory is a coroutine. Signatures generally follow:
 
@@ -128,7 +133,7 @@ Rules:
 
 ---
 
-## Facebook features
+## ✨ Facebook features
 
 ### `_changeBio.py`
 
@@ -167,6 +172,34 @@ Empty text is rejected. `attachmentID` remains in the signature for planned supp
     "urlPost": "https://www.facebook.com/...",
 }
 ```
+
+### `_archivePost.py`
+
+```python
+result = await _archivePost.func(
+    data_fb,
+    "1234567890",
+    typePost="my_post",
+    client=client,
+)
+```
+
+Uses `useCometArchivePostMutation` to archive a post. Works similarly to `_deletePost`.
+
+### `_deletePost.py`
+
+```python
+result = await _deletePost.func(
+    data_fb,
+    "1234567890",
+    typePost="my_post",
+    client=client,
+)
+```
+
+Uses `useCometTrashPostMutation` to move a post to the trash bin.
+- `postID`: The ID of the post.
+- `typePost`: The type of the post (`"my_post"` for your own posts, `"others"` for shared posts or others' posts). Returns `success` if successful.
 
 ### `_professional.py`
 
@@ -300,7 +333,7 @@ Pre-request validation includes a non-empty name, at least one photo, numeric no
 
 ---
 
-## Thread features
+## ✨ Thread features
 
 ### `_all_thread_data.py`
 
@@ -388,7 +421,7 @@ Empty names and emojis are rejected before I/O. `statusChoice=False` performs a 
 
 ---
 
-## Reusing an HTTP client
+## 🌍 Reusing an HTTP client
 
 Use one client for a multi-request workflow:
 
@@ -413,7 +446,7 @@ Run only independent actions concurrently. Do not gather mutations whose order m
 
 ---
 
-## Results and errors
+## 🩺 Results and errors
 
 Legacy modules do not yet share one result model. Common shapes:
 
@@ -438,7 +471,7 @@ HTTP 200 is not sufficient. Facebook frequently embeds errors in GraphQL `errors
 
 ---
 
-## Dependency map
+## 🔗 Dependency map
 
 ```mermaid
 flowchart LR
@@ -455,7 +488,7 @@ flowchart LR
 
 ---
 
-## Adding a feature
+## 📌 Adding a feature
 
 1. Validate input before I/O.
 2. Separate `_build_request`, transport, and `_parse_response`.
@@ -470,7 +503,7 @@ flowchart LR
 
 ---
 
-## Troubleshooting
+## 🩺 Troubleshooting
 
 | Symptom | Cause | Fix |
 |---|---|---|

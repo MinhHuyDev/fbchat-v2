@@ -2,9 +2,11 @@
 
 > Gửi, nhận, attachment, reaction, thu hồi, sửa tin, theme, notes và bridge E2EE cho Messenger.
 
-[README chính](../../README.md) | [English](README_EN.md) | [Tài liệu API](../../DOCS.md) | [Bridge E2EE](../../bridge-e2ee/README.md)
+[![English](https://img.shields.io/badge/English-0b8ecf?style=flat-square)](README_EN.md)
+[![DOCS](https://img.shields.io/badge/DOCS-2563eb?style=flat-square)](../../DOCS.md)
+[![Bridge E2EE](https://img.shields.io/badge/Bridge-E2EE-ff6b35?style=flat-square)](../../bridge-e2ee/README.md)
 
-## Mục lục
+## 📋 Mục lục
 
 - [Vai trò](#vai-trò)
 - [Cấu trúc thư mục](#cấu-trúc-thư-mục)
@@ -27,7 +29,7 @@
 
 ---
 
-## Vai trò
+## 🎯 Vai trò
 
 `_messaging` đóng gói các workflow Messenger:
 
@@ -43,10 +45,10 @@ Module nhận `dataFB` từ `_core`. Nó không tự lưu cookie hoặc quản l
 
 ---
 
-## Cấu trúc thư mục
+## 🏗️ Cấu trúc thư mục
 
 ```text
-src/_messaging/
+src/fbchat_v2/_messaging/
 ├── __init__.py
 ├── _send.py                  # Gửi text/attachment thường
 ├── _attachments.py           # Upload file -> attachment ID
@@ -66,7 +68,7 @@ src/_messaging/
 
 ---
 
-## Cài đặt
+## ⚙️ Cài đặt
 
 Python package:
 
@@ -100,9 +102,9 @@ Python tìm binary theo `binary_path=`, `FBCHAT_E2EE_BIN`, path mặc định tr
 
 ---
 
-## Public API
+## 🌐 Public API
 
-`src/_messaging/__init__.py`:
+`src/fbchat_v2/_messaging/__init__.py`:
 
 ```python
 __all__ = [
@@ -146,7 +148,7 @@ Helper blocking có hậu tố `_blocking`. Không có alias `func_async` hoặc
 
 ---
 
-## Hợp đồng `dataFB`
+## 📝 Hợp đồng `dataFB`
 
 Field thường dùng:
 
@@ -175,7 +177,7 @@ Bridge E2EE cần cookie `c_user`, `xs`, `datr`, `fr`. Không log tên kèm giá
 
 ---
 
-## Gửi tin thường
+## 💬 Gửi tin thường
 
 ### Chữ ký
 
@@ -285,7 +287,7 @@ Input sai raise `ValueError` trước request. Mỗi call build form riêng và 
 
 ---
 
-## Upload attachment
+## 📎 Upload attachment
 
 ### Chữ ký
 
@@ -365,7 +367,7 @@ Khi caller không truyền async client, wrapper dùng compatibility upload tron
 
 ---
 
-## Listener MQTT thường
+## 📡 Listener MQTT thường
 
 ### Khởi tạo
 
@@ -426,7 +428,7 @@ Reconnect được quản lý ở vòng ngoài, không gọi đệ quy `connect_
 
 ---
 
-## Listener E2EE
+## 🔐 Listener E2EE
 
 ### Khởi tạo
 
@@ -564,7 +566,7 @@ Watchdog tự respawn bridge tối đa 5 lần với backoff. Application vẫn 
 
 ---
 
-## Bridge actions
+## 🌉 Bridge actions
 
 ```python
 from fbchat_v2._messaging._bridge_actions import BridgeActions
@@ -662,7 +664,7 @@ Wrapper decode base64 thành bytes và giữ metadata còn lại trong dict.
 
 ---
 
-## Standalone E2EE sender
+## 🔐 Standalone E2EE sender
 
 `_send_e2ee.api` là sender compatibility blocking. Nó hỗ trợ:
 
@@ -701,7 +703,7 @@ Application async mới nên dùng `listener.send_e2ee_message()` trực tiếp.
 
 ---
 
-## Reaction, sửa và thu hồi
+## 🔄 Reaction, sửa và thu hồi
 
 ### Reaction
 
@@ -751,7 +753,7 @@ Message ID rỗng raise `ValueError`. Response không phải JSON hợp lệ ho�
 
 ---
 
-## Theme và Messenger Notes
+## 🎨 Theme và Messenger Notes
 
 ### Theme
 
@@ -807,7 +809,7 @@ Entry point `func` hỗ trợ `check`, `create`, `delete`, `recreate`. Text ho�
 
 ---
 
-## Message requests
+## 📬 Message requests
 
 ```python
 from fbchat_v2._messaging import _message_requests
@@ -839,7 +841,7 @@ Parser đọc GraphQL batch có nhiều JSON object liên tiếp và tìm object
 
 ---
 
-## Sơ đồ phụ thuộc
+## 🔗 Sơ đồ phụ thuộc
 
 ```mermaid
 flowchart TD
@@ -862,7 +864,7 @@ flowchart TD
 
 ---
 
-## Workflow hoàn chỉnh
+## 🛤️ Workflow hoàn chỉnh
 
 ### Bot nhận và reply E2EE
 
@@ -920,7 +922,7 @@ Workflow production nên thêm dedupe message ID, bỏ self-message, structured 
 
 ---
 
-## Quy tắc phát triển
+## 📏 Quy tắc phát triển
 
 - Public I/O API mới dùng async và tên không có hậu tố `_async`.
 - Helper blocking phải có `_blocking` và chỉ được gọi tại boundary rõ ràng.
@@ -936,7 +938,7 @@ Workflow production nên thêm dedupe message ID, bỏ self-message, structured 
 
 ---
 
-## Khắc phục sự cố
+## 🩺 Khắc phục sự cố
 
 | Hiện tượng | Nguyên nhân thường gặp | Cách xử lý |
 |---|---|---|

@@ -2,9 +2,10 @@
 
 > Sessions, HTTP transport, storage, credential login, and shared utilities for `fbchat-v2`.
 
-[Main README](../../README_EN.md) | [Tiếng Việt](README.md) | [API guide](../../DOCS.md)
+[![Tiếng Việt](https://img.shields.io/badge/Ti%E1%BA%BFng%20Vi%E1%BB%87t-0b8ecf?style=flat-square)](README.md)
+[![DOCS](https://img.shields.io/badge/DOCS-2563eb?style=flat-square)](../../DOCS.md)
 
-## Contents
+## 📋 Contents
 
 - [Responsibilities](#responsibilities)
 - [Directory layout](#directory-layout)
@@ -21,7 +22,7 @@
 
 ---
 
-## Responsibilities
+## 🎯 Responsibilities
 
 `_core` is the foundation of the codebase:
 
@@ -37,10 +38,10 @@ Modules in `_features` and `_messaging` should not bootstrap their own sessions,
 
 ---
 
-## Directory layout
+## 🏗️ Directory layout
 
 ```text
-src/_core/
+src/fbchat_v2/_core/
 ├── __init__.py          # Version and module exports
 ├── _http.py             # httpx Client/AsyncClient transport
 ├── _session.py          # Cookie -> dataFB
@@ -54,9 +55,9 @@ src/_core/
 
 ---
 
-## Public API
+## 🌐 Public API
 
-`src/_core/__init__.py` exports:
+`src/fbchat_v2/_core/__init__.py` exports:
 
 ```python
 __all__ = ["_session", "_utils", "_facebookLogin", "__version__"]
@@ -74,7 +75,7 @@ Application code usually needs only `dataGetHome`, a storage implementation, and
 
 ---
 
-## `dataFB` contract
+## 📝 `dataFB` contract
 
 `dataFB` is the shared session dictionary:
 
@@ -106,7 +107,7 @@ Fields required by `_session.REQUIRED_SESSION_FIELDS`:
 
 ---
 
-## `_session.py`
+## 💾 `_session.py`
 
 ### `dataGetHome`
 
@@ -149,7 +150,7 @@ The function returns `None` for an empty cookie, request errors, HTTP status err
 
 ---
 
-## `_storage.py`
+## 📌 `_storage.py`
 
 ### `SessionStorage`
 
@@ -190,7 +191,7 @@ data_fb = await dataGetHome(storage=storage)
 
 ---
 
-## `_http.py`
+## 🌍 `_http.py`
 
 Shared transports:
 
@@ -226,7 +227,7 @@ When the caller injects a client, TLS configuration belongs to that client. A re
 
 ---
 
-## `_utils.py`
+## 📌 `_utils.py`
 
 ### HTTP and JSON helpers
 
@@ -277,7 +278,7 @@ These IDs are protocol values, not cryptographic tokens or database identifiers.
 
 ---
 
-## `_facebookLogin.py`
+## 🔑 `_facebookLogin.py`
 
 ### API
 
@@ -319,7 +320,7 @@ Credential login may encounter a 2FA continuation, a device checkpoint, a new er
 
 ---
 
-## Dependency map
+## 🔗 Dependency map
 
 ```mermaid
 flowchart TD
@@ -341,7 +342,7 @@ flowchart TD
 
 ---
 
-## Development rules
+## 📏 Development rules
 
 - New public I/O APIs are async-first.
 - Async HTTP uses `httpx.AsyncClient`; do not add new thread-wrapped `requests` code without a protocol-specific reason.
@@ -355,7 +356,7 @@ flowchart TD
 
 ---
 
-## Troubleshooting
+## 🩺 Troubleshooting
 
 | Symptom | Common cause | Check |
 |---|---|---|

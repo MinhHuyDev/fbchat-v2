@@ -29,7 +29,7 @@ fbchat-v2-pypi/
 
 ## 🚧 Trạng thái
 
-Nhánh `pypi` đang đóng gói runtime async-first `v2.2.0` từ repo gốc.
+Nhánh `pypi` đang đóng gói runtime async-first `v2.3.0` từ repo gốc.
 Code module đã đổi import sang namespace `fbchat_v2.*` để chạy đúng sau khi cài qua `pip`.
 
 Nguồn: [`../fbchat-v2/CHANGELOG.md`](../fbchat-v2/CHANGELOG.md).
@@ -44,13 +44,13 @@ python -m venv .venv
 .venv\Scripts\activate
 pip install --upgrade pip build twine
 
-# Build sdist + wheel
-python -m build
+# Build sdist + wheel vào thư mục rỗng riêng cho đúng version
+python -m build --outdir .artifacts/v2.3.0
 
-# Kết quả nằm ở dist/
-ls dist/
-# fbchat_v2-2.2.0-py3-none-any.whl
-# fbchat_v2-2.2.0.tar.gz
+# Kết quả nằm ở .artifacts/v2.3.0/
+ls .artifacts/v2.3.0/
+# fbchat_v2-2.3.0-py3-none-any.whl
+# fbchat_v2-2.3.0.tar.gz
 ```
 
 ## 🧪 Test cài thử
@@ -59,7 +59,7 @@ ls dist/
 deactivate
 python -m venv .venv-test
 .venv-test\Scripts\activate
-pip install dist/fbchat_v2-2.2.0-py3-none-any.whl
+pip install .artifacts/v2.3.0/fbchat_v2-2.3.0-py3-none-any.whl
 
 python -c "import fbchat_v2; print(fbchat_v2.__version__)"
 ```
@@ -69,14 +69,14 @@ python -c "import fbchat_v2; print(fbchat_v2.__version__)"
 ### TestPyPI (làm trước cho chắc)
 
 ```powershell
-twine upload --repository testpypi dist/*
+twine upload --repository testpypi .artifacts/v2.3.0/fbchat_v2-2.3.0-py3-none-any.whl .artifacts/v2.3.0/fbchat_v2-2.3.0.tar.gz
 pip install --index-url https://test.pypi.org/simple/ fbchat-v2
 ```
 
 ### PyPI thật
 
 ```powershell
-twine upload dist/*
+twine upload .artifacts/v2.3.0/fbchat_v2-2.3.0-py3-none-any.whl .artifacts/v2.3.0/fbchat_v2-2.3.0.tar.gz
 ```
 
 > Cần token API. Tạo tại <https://pypi.org/manage/account/token/> và lưu vào `~/.pypirc`.
@@ -85,9 +85,11 @@ twine upload dist/*
 
 ## 🔗 E2EE bridge
 
-Binary Go `fbchat-bridge-e2ee` **không** được đóng gói trong wheel. Bản `v2.2.0`
-tự tìm/tải binary từ GitHub Releases khi cần, hoặc user có thể trỏ thủ công qua
-`FBCHAT_E2EE_BIN`.
+Binary Go `fbchat-bridge-e2ee` **không** được đóng gói trong wheel. Bản `v2.3.0`
+chỉ tự tải binary khi package có checksum của đúng GitHub Release. Trước khi các
+asset `v2.3.0` tồn tại, user phải tự build bridge cùng version và trỏ thủ công
+qua `FBCHAT_E2EE_BIN`; cơ chế này cố ý fail-closed thay vì chạy binary không rõ
+nguồn gốc.
 
 ```bash
 pip install fbchat-v2          # core + async/httpx runtime

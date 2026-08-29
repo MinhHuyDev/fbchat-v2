@@ -5,12 +5,12 @@
 ### Thư viện Python async-first cho Facebook Messenger API không chính thức
 
 [![Status](https://img.shields.io/badge/status-active-22c55e)](https://github.com/MinhHuyDev/fbchat-v2)
-[![PyPI](https://img.shields.io/pypi/v/fbchat-v2-color=3775A9&logo=pypi&logoColor=white)](https://pypi.org/project/fbchat-v2/)
-[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB-logo=python&logoColor=white)](https://www.python.org/)
-[![Version](https://img.shields.io/badge/version-2.2.0-blue)](https://github.com/MinhHuyDev/fbchat-v2/releases)
-[![Issues](https://img.shields.io/github/issues/MinhHuyDev/fbchat-v2-color=orange)](https://github.com/MinhHuyDev/fbchat-v2/issues)
+[![PyPI](https://img.shields.io/pypi/v/fbchat-v2?color=3775A9&logo=pypi&logoColor=white)](https://pypi.org/project/fbchat-v2/)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Version](https://img.shields.io/badge/version-2.3.0-blue)](https://github.com/MinhHuyDev/fbchat-v2/releases)
+[![Issues](https://img.shields.io/github/issues/MinhHuyDev/fbchat-v2?color=orange)](https://github.com/MinhHuyDev/fbchat-v2/issues)
 [![License](https://img.shields.io/badge/license-Xem%20LICENSE-lightgrey)](LICENSE)
-[![Telegram](https://img.shields.io/badge/Telegram-MinhHuyDev-26A5E4-logo=telegram&logoColor=white)](https://t.me/MinhHuyDev)
+[![Telegram](https://img.shields.io/badge/Telegram-MinhHuyDev-26A5E4?logo=telegram&logoColor=white)](https://t.me/MinhHuyDev)
 
 [🇬🇧 English](README_EN.md) · [📖 Tài liệu](DOCS.md) · [📦 PyPI](https://pypi.org/project/fbchat-v2/) · [ 📊 Sơ đồ luồng](FLOWCHART.md) · [🐛 Báo lỗi](https://github.com/MinhHuyDev/fbchat-v2/issues)
 
@@ -19,7 +19,7 @@
 ---
 
 > [!IMPORTANT]
-> Đây là phiên bản `v2.2.0` sử dụng *httpx.Client* thay vì *requests* như cũ và đã trang bị **async/await** nên syntax code có thể bị thay đổi hoặc xung đột với bản của bạn đang dùng. Nếu bạn vẫn muốn dùng **requests** (*no async/await*), hãy bấm vào đây: [v2.1.4](https://github.com/m008v/fbchat-v2/tree/v2.1.4)
+> Đây là phiên bản `v2.3.0` sử dụng *httpx.Client* thay vì *requests* như cũ và đã trang bị **async/await** nên syntax code có thể bị thay đổi hoặc xung đột với bản của bạn đang dùng. Nếu bạn vẫn muốn dùng **requests** (*no async/await*), hãy bấm vào đây: [v2.1.4](https://github.com/m008v/fbchat-v2/tree/v2.1.4)
 
 > [!WARNING]
 > **Tuyên bố miễn trừ trách nhiệm** - Đây **không** phải là sản phẩm chính thức của Facebook. Facebook đã có sẵn API chatbot chính thức [tại đây](https://developers.facebook.com/docs/messenger-platform/). `fbchat-v2` khác biệt ở chỗ nó xác thực bằng **tài khoản / cookie người dùng Facebook thực**, vốn tiềm ẩn rủi ro. Hãy cân nhắc kỹ trước khi sử dụng.
@@ -29,7 +29,7 @@
 ## 👋 Giới thiệu
 Xin chào, mình là **MinhHuyDev** (*m008v*) - tác giả và người duy trì dự án này.
 
-Trước hết, mình xin chân thành cảm ơn tất cả người dùng trong và ngoài nước đã đóng góp ý tưởng và báo lỗi cho dự án. Trong **bản cập nhật lớn v2.2.0** này, codebase đã được **tái cấu trúc hoàn toàn**, xử lý phần lớn các lỗi nhỏ tồn đọng và trang bị *async/await* mạnh mẽ!
+Đợt refactor async-first bắt đầu ở `v2.2.0` và được hoàn thiện trong `v2.3.0` với message pipeline, lifecycle E2EE, persistence, packaging và quality gate được hardening đồng bộ.
 
 Tất nhiên vẫn sẽ còn những lỗi vặt khó tìm ra, hoặc các đoạn code chưa thật sự đồng bộ. Nếu bạn phát hiện ra ***vấn đề***, hãy mở issue trên [GitHub](https://github.com/MinhHuyDev/fbchat-v2/issues) hoặc nhắn trực tiếp cho mình qua [Telegram](https://t.me/MinhHuyDev).
 
@@ -97,9 +97,9 @@ Codebase chia thành 3 tầng. Feature không được tự quản session và m
 
 | Tầng | Đường dẫn | Trách nhiệm |
 |---|---|---|
-| Core | `src/_core/` | HTTP transport, session, storage, login và utility |
-| Features | `src/_features/` | Nghiệp vụ Facebook và quản trị thread |
-| Messaging | `src/_messaging/` | Send, listen, E2EE, attachment, reaction, theme và notes |
+| Core | `src/fbchat_v2/_core/` | HTTP transport, session, storage, login và utility |
+| Features | `src/fbchat_v2/_features/` | Nghiệp vụ Facebook và quản trị thread |
+| Messaging | `src/fbchat_v2/_messaging/` | Send, listen, E2EE, attachment, reaction, theme và notes |
 
 ```mermaid
 flowchart LR
@@ -200,22 +200,13 @@ dependencies = [
 
 > Tóm tắt: **Bước 1–4 bắt buộc** cho mọi user. **Bước 5 chỉ cần nếu bạn muốn nhận tin nhắn 1-1 (E2EE)**.
 
-### 1. Clone mã nguồn
-
-```bash
-git clone https://github.com/MinhHuyDev/fbchat-v2
-cd fbchat-v2
-```
-
-> Cách khác: `Code → Download ZIP` trên GitHub.
-
-### 2. Tạo môi trường ảo *(không bắt buộc nhưng khuyến nghị)*
+### 1. Tạo môi trường ảo *(không bắt buộc nhưng khuyến nghị)*
 
 ```bash
 python -m venv .venv
 ```
 
-Kích hoạt môi trường:
+### 2. Kích hoạt môi trường
 
 ```bash
 # Windows (PowerShell)
@@ -225,36 +216,36 @@ Kích hoạt môi trường:
 source .venv/bin/activate
 ```
 
-### 3. Cài đặt phụ thuộc Python
+### 3. Cài package từ PyPI
 
 ```bash
-pip install --upgrade pip
-pip install -e .
+python -m pip install --upgrade pip
+python -m pip install --upgrade "fbchat-v2==2.3.0"
 ```
 
 Kiểm tra nhanh:
 
 ```bash
-python -c "import httpx, requests, paho.mqtt.client, pyotp; print('OK')"
+python -c "import fbchat_v2; from fbchat_v2._features._facebook import _unFriend; print(fbchat_v2.__version__)"
 ```
 
-### 4. Cho phép import từ `src/`
+### 4. Xác minh package đã cài
 
-Khi chạy script ở thư mục gốc dự án, hãy expose `src/` để các module `_core`, `_features`, `_messaging` được import đúng:
+Wheel phải giữ public namespace `fbchat_v2` để tương thích với các bản PyPI trước:
 
 ```bash
-# Windows (PowerShell)
-$env:PYTHONPATH = "src"
-
-# macOS / Linux
-export PYTHONPATH=src
+python -c "from fbchat_v2._core._session import dataGetHome; from fbchat_v2._messaging._send import api; print('OK')"
 ```
 
-Hoặc bạn có thể import thủ công với prefix đầy đủ `src.`.
+Không cần đặt `PYTHONPATH=src`; mọi import bắt đầu bằng `fbchat_v2.`.
 
 ### 5. *(Tuỳ chọn)* Build bridge E2EE - cho tin nhắn 1-1
 
 Nếu bạn chỉ cần nhận tin nhắn nhóm, **bỏ qua bước này**. Ngược lại, tin nhắn cá nhân (E2EE) cần binary Go `fbchat-bridge-e2ee`.
+
+Package `2.3.0` fail-closed khi chưa có checksum của GitHub Release tương ứng.
+Cho tới khi asset `v2.3.0` được phát hành, hãy tự build bridge cùng version và đặt
+`FBCHAT_E2EE_BIN`; package không âm thầm tải hoặc chạy binary không được xác minh.
 
 #### 5.1. Cài Go toolchain
 
@@ -353,6 +344,8 @@ Ví dụ:
   "admins": [
     "1000xxxxxxxxxx"
   ],
+  "log_message_content": false,
+  "debug_errors": false,
   "version": "0.0.1"
 }
 ```
@@ -362,10 +355,15 @@ Ví dụ:
 | `cookies` | Có | Cookie phiên Facebook dạng chuỗi |
 | `prefix` | Không | Tiền tố lệnh, mặc định `/` |
 | `admins` | Không | Danh sách Facebook ID được dùng lệnh quản trị |
+| `log_message_content` | Không | Cho phép ghi plaintext nội dung chat; mặc định `false` để bảo vệ riêng tư |
+| `debug_errors` | Không | In payload/traceback chi tiết; mặc định `false` |
 | `botName` | Không | Metadata cho config, bot mẫu hiện không dùng |
 | `version` | Không | Metadata cho config, bot mẫu hiện không dùng |
 
-`src/config.json` đã bị gitignore. Không dùng `config.example.json` để chứa cookie thật.
+`src/config.json` đã bị gitignore và bot sẽ siết quyền file về `0600` trên
+POSIX hoặc ACL riêng cho user hiện tại/SYSTEM trên Windows. Không dùng
+`config.example.json` để chứa cookie thật, và chỉ bật hai tùy chọn log trên khi
+đang debug trong môi trường kiểm soát.
 
 ---
 
@@ -549,7 +547,7 @@ Event chính:
 | `error` | lỗi bridge/transport | Cần log và giám sát |
 | `bridge_fatal` | số lần retry | Watchdog đã bỏ cuộc |
 
-Action nâng cao như edit, unsend, typing, mark-read, gửi ảnh/audio và download media nằm trong `BridgeActions`. Xem [tài liệu messaging](src/_messaging/README.md).
+Action nâng cao như edit, unsend, typing, mark-read, gửi ảnh/audio và download media nằm trong `BridgeActions`. Xem [tài liệu messaging](src/fbchat_v2/_messaging/README.md).
 
 ---
 
@@ -575,9 +573,9 @@ Queue của bot có giới hạn 1000 event và drop event cũ nhất khi đầy
 | Tài liệu | Nội dung |
 |---|---|
 | [DOCS.md](DOCS.md) | Hướng dẫn API và workflow đầy đủ |
-| [Core](src/_core/README.md) | Session, HTTP, storage và login |
-| [Features](src/_features/README.md) | Facebook feature và thread |
-| [Messaging](src/_messaging/README.md) | Send, listener, attachment và E2EE |
+| [Core](src/fbchat_v2/_core/README.md) | Session, HTTP, storage và login |
+| [Features](src/fbchat_v2/_features/README.md) | Facebook feature và thread |
+| [Messaging](src/fbchat_v2/_messaging/README.md) | Send, listener, attachment và E2EE |
 | [Bridge E2EE](bridge-e2ee/README.md) | Build, binary discovery và JSON-RPC |
 | [Flowchart](FLOWCHART.md) | Luồng session, HTTP, MQTT, E2EE và shutdown |
 | [Mindmap](mindmap-mermaid.md) | Bản đồ module toàn dự án |
@@ -586,22 +584,21 @@ Queue của bot có giới hạn 1000 event và drop event cũ nhất khi đầy
 
 ## ✅ Kiểm tra chất lượng
 
-Chạy đúng command CI:
+Các gate đóng gói nên chạy trước commit:
 
 ```bash
-pytest tests/ -v --tb=short
-```
-
-Các gate nên chạy trước commit:
-
-```bash
-python -m compileall -q src tests
-ruff check src tests
-ruff format --check src tests
+python -m compileall -q src/fbchat_v2
+ruff check src/fbchat_v2
+black --check src/fbchat_v2
+mypy
+python -m build
+twine check --strict dist/fbchat_v2-2.3.0-py3-none-any.whl dist/fbchat_v2-2.3.0.tar.gz
 git diff --check
 ```
 
-Với bridge:
+Wheel và sdist phải được cài riêng trong virtual environment sạch trước khi upload.
+
+Test runtime và bridge đầy đủ nằm trong [repo nguồn](https://github.com/MinhHuyDev/fbchat-v2):
 
 ```bash
 cd bridge-e2ee

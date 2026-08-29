@@ -20,11 +20,11 @@ class BridgeActions:
         return await self._bridge.call(method, params)
 
     def edit_message_blocking(self, message_id: str, new_text: str) -> dict[str, Any]:
-        return self._call_blocking("editMessage", {"messageId": message_id, "newText": new_text})
+        return self._call_blocking(
+            "editMessage", {"messageId": message_id, "newText": new_text}
+        )
 
-    async def edit_message(
-        self, message_id: str, new_text: str
-    ) -> dict[str, Any]:
+    async def edit_message(self, message_id: str, new_text: str) -> dict[str, Any]:
         return await self._call(
             "editMessage", {"messageId": message_id, "newText": new_text}
         )
@@ -63,7 +63,9 @@ class BridgeActions:
             self._e2ee_message_params(chat_jid, message_id, new_text),
         )
 
-    def unsend_e2ee_message_blocking(self, chat_jid: str, message_id: str) -> dict[str, Any]:
+    def unsend_e2ee_message_blocking(
+        self, chat_jid: str, message_id: str
+    ) -> dict[str, Any]:
         return self._call_blocking(
             "unsendE2EEMessage", self._e2ee_message_params(chat_jid, message_id)
         )
@@ -114,22 +116,20 @@ class BridgeActions:
             "markRead", {"threadId": thread_id, "watermarkTs": watermark_ts}
         )
 
-    async def mark_read(
-        self, thread_id: int, watermark_ts: int
-    ) -> dict[str, Any]:
+    async def mark_read(self, thread_id: int, watermark_ts: int) -> dict[str, Any]:
         return await self._call(
             "markRead", {"threadId": thread_id, "watermarkTs": watermark_ts}
         )
 
-    def send_e2ee_typing_blocking(self, chat_jid: str, is_typing: bool) -> dict[str, Any]:
+    def send_e2ee_typing_blocking(
+        self, chat_jid: str, is_typing: bool
+    ) -> dict[str, Any]:
         return self._call_blocking(
             "sendE2EETyping",
             {"chatJid": normalize_chat_jid(chat_jid), "isTyping": is_typing},
         )
 
-    async def send_e2ee_typing(
-        self, chat_jid: str, is_typing: bool
-    ) -> dict[str, Any]:
+    async def send_e2ee_typing(self, chat_jid: str, is_typing: bool) -> dict[str, Any]:
         return await self._call(
             "sendE2EETyping",
             {"chatJid": normalize_chat_jid(chat_jid), "isTyping": is_typing},

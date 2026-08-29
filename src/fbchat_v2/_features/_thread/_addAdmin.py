@@ -1,3 +1,22 @@
+"""
+Đường dẫn file:
+  src/fbchat_v2/_features/_thread/_addAdmin.py
+
+Mục đích:
+  - Thêm hoặc xoá quyền quản trị viên (admin) của thành viên trong nhóm.
+
+Cách hoạt động:
+  - Nạp dependency/guard cần thiết, thực hiện các async HTTP requests tới API nội bộ hoặc GraphQL của Facebook.
+  - Các thao tác request đều phải thông qua httpx.AsyncClient và module _core._utils để bảo đảm an toàn kết nối.
+  - Payload gửi đi/nhận về được xử lý JSON cẩn thận, bắt lỗi try-except đầy đủ để tránh crash hệ thống.
+
+File liên quan:
+  - src/main.py và các entrypoint khác.
+  - Phụ thuộc vào _core._session, _core._utils để khởi tạo và thao tác HTTP.
+
+Author: @m008v (MinhHuyDev)
+"""
+
 from __future__ import annotations
 
 from typing import Any
@@ -6,7 +25,7 @@ import httpx
 
 from fbchat_v2._core._utils import formatResults, formAll, post_form_json_async
 
-_URL = "https://www.facebook.com/messaging/save_admins/-dpr=1"
+_URL = "https://www.facebook.com/messaging/save_admins/?dpr=1"
 
 
 def _build_form(
@@ -35,7 +54,6 @@ def _parse_result(payload: dict[str, Any], status_choice: bool) -> dict[str, str
         )
     action = "Thêm" if status_choice else "Gỡ"
     return formatResults("success", f"{action} quản trị viên thành công.")
-
 
 
 async def func(

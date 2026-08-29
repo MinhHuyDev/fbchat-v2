@@ -2,9 +2,11 @@
 
 > Send, receive, attachments, reactions, unsend, editing, themes, notes, and the Messenger E2EE bridge.
 
-[Main README](../../README_EN.md) | [Tiếng Việt](README.md) | [API guide](../../DOCS.md) | [E2EE bridge](../../bridge-e2ee/README.md)
+[![Tiếng Việt](https://img.shields.io/badge/Ti%E1%BA%BFng%20Vi%E1%BB%87t-0b8ecf?style=flat-square)](README.md)
+[![DOCS](https://img.shields.io/badge/DOCS-2563eb?style=flat-square)](../../DOCS.md)
+[![E2EE bridge](https://img.shields.io/badge/E2EE-bridge-ff6b35?style=flat-square)](../../bridge-e2ee/README.md)
 
-## Contents
+## 📋 Contents
 
 - [Responsibilities](#responsibilities)
 - [Directory layout](#directory-layout)
@@ -27,7 +29,7 @@
 
 ---
 
-## Responsibilities
+## 🎯 Responsibilities
 
 `_messaging` implements Messenger workflows:
 
@@ -43,10 +45,10 @@ The package receives `dataFB` from `_core`. It does not own application cookie s
 
 ---
 
-## Directory layout
+## 🏗️ Directory layout
 
 ```text
-src/_messaging/
+src/fbchat_v2/_messaging/
 ├── __init__.py
 ├── _send.py                  # Regular text/attachment sending
 ├── _attachments.py           # File upload -> attachment ID
@@ -66,7 +68,7 @@ src/_messaging/
 
 ---
 
-## Installation
+## ⚙️ Installation
 
 Install the Python package:
 
@@ -100,9 +102,9 @@ Python resolves the binary from `binary_path=`, `FBCHAT_E2EE_BIN`, the default `
 
 ---
 
-## Public API
+## 🌐 Public API
 
-`src/_messaging/__init__.py`:
+`src/fbchat_v2/_messaging/__init__.py`:
 
 ```python
 __all__ = [
@@ -146,7 +148,7 @@ Blocking helpers have an explicit `_blocking` suffix. There are no redundant `fu
 
 ---
 
-## `dataFB` contract
+## 📝 `dataFB` contract
 
 Common fields:
 
@@ -175,7 +177,7 @@ The E2EE bridge requires `c_user`, `xs`, `datr`, and `fr`. Log only missing cook
 
 ---
 
-## Regular sending
+## 💬 Regular sending
 
 ### Signature
 
@@ -269,7 +271,7 @@ Invalid input raises `ValueError` before a request. Every call builds an isolate
 
 ---
 
-## Attachment uploads
+## 📎 Attachment uploads
 
 ```python
 await _attachments.func(
@@ -328,7 +330,7 @@ File handles are closed in `finally`. Without an injected async client, the comp
 
 ---
 
-## Regular MQTT listener
+## 📡 Regular MQTT listener
 
 ```python
 from fbchat_v2._messaging._listening import listeningEvent
@@ -382,7 +384,7 @@ The listener parses all deltas, verifies TLS, and uses a bounded queue. A full q
 
 ---
 
-## E2EE listener
+## 🔐 E2EE listener
 
 ```python
 from fbchat_v2._messaging._listening_e2ee import listeningE2EEEvent
@@ -495,7 +497,7 @@ The watchdog respawns a crashed bridge up to five times with backoff. The applic
 
 ---
 
-## Bridge actions
+## 🌉 Bridge actions
 
 ```python
 from fbchat_v2._messaging._bridge_actions import BridgeActions
@@ -573,7 +575,7 @@ The wrapper decodes base64 into bytes and preserves other metadata.
 
 ---
 
-## Standalone E2EE sender
+## 🔐 Standalone E2EE sender
 
 `_send_e2ee.api` is a blocking compatibility sender. It can reuse a listener bridge or launch its own bridge.
 
@@ -609,7 +611,7 @@ New async applications should use `listener.send_e2ee_message()` directly. A sta
 
 ---
 
-## Reactions, editing, and unsend
+## 🔄 Reactions, editing, and unsend
 
 ### Reactions
 
@@ -659,7 +661,7 @@ An empty ID raises `ValueError`. Invalid JSON or a Facebook error becomes an err
 
 ---
 
-## Themes and Messenger Notes
+## 🎨 Themes and Messenger Notes
 
 ### Themes
 
@@ -707,7 +709,7 @@ The unified `func` supports `check`, `create`, `delete`, and `recreate`. Empty t
 
 ---
 
-## Message requests
+## 📬 Message requests
 
 ```python
 from fbchat_v2._messaging import _message_requests
@@ -737,7 +739,7 @@ The parser handles a GraphQL batch containing consecutive JSON objects and finds
 
 ---
 
-## Dependency map
+## 🔗 Dependency map
 
 ```mermaid
 flowchart TD
@@ -760,7 +762,7 @@ flowchart TD
 
 ---
 
-## Complete workflow
+## 🛤️ Complete workflow
 
 ```python
 import asyncio
@@ -816,7 +818,7 @@ A production workflow should add message ID deduplication, self-message filterin
 
 ---
 
-## Development rules
+## 📏 Development rules
 
 - New public I/O APIs are async and have no `_async` suffix.
 - Blocking helpers use `_blocking` and stay behind explicit boundaries.
@@ -832,7 +834,7 @@ A production workflow should add message ID deduplication, self-message filterin
 
 ---
 
-## Troubleshooting
+## 🩺 Troubleshooting
 
 | Symptom | Common cause | Fix |
 |---|---|---|

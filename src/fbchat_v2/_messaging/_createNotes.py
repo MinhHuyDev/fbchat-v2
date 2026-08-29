@@ -1,3 +1,22 @@
+"""
+Đường dẫn file:
+  src/fbchat_v2/_messaging/_createNotes.py
+
+Mục đích:
+  - Tạo hoặc cập nhật ghi chú (notes) trên Messenger.
+
+Cách hoạt động:
+  - Nạp dependency/guard cần thiết, thực hiện các async HTTP requests tới API nội bộ hoặc GraphQL của Facebook.
+  - Các thao tác request đều phải thông qua httpx.AsyncClient và module _core._utils để bảo đảm an toàn kết nối.
+  - Payload gửi đi/nhận về được xử lý JSON cẩn thận, bắt lỗi try-except đầy đủ để tránh crash hệ thống.
+
+File liên quan:
+  - src/main.py và các entrypoint khác.
+  - Phụ thuộc vào _core._session, _core._utils để khởi tạo và thao tác HTTP.
+
+Author: @m008v (MinhHuyDev)
+"""
+
 from __future__ import annotations
 
 import httpx
@@ -92,7 +111,7 @@ def _post_graphql(
     request_args = _build_graphql_request(dataFB, friendly_name, doc_id, variables)
     request_args["timeout"] = timeout
 
-    last_error = None
+    last_error: httpx.HTTPError | None = None
     for attempt in range(retries + 1):
         try:
             response = send_request(request_args)
@@ -136,7 +155,7 @@ async def _post_graphql_async(
     request_args = _build_graphql_request(dataFB, friendly_name, doc_id, variables)
     request_args["timeout"] = timeout
 
-    last_error = None
+    last_error: httpx.HTTPError | None = None
     for attempt in range(retries + 1):
         try:
             response = await send_request_async(request_args)
@@ -294,11 +313,11 @@ def re_createNote_blocking(
     dataFB: dict[str, Any], oldNoteID: str, newText: str, privacy: str = "FRIENDS"
 ) -> dict[str, Any]:
     """Xoá note cũ rồi tạo note mới."""
-    deleted = deleteNote(dataFB, oldNoteID)
+    deleted = _deleteNote_blocking(dataFB, oldNoteID)
     if deleted.get("error"):
         return deleted
 
-    created = createNote(dataFB, newText, privacy=privacy)
+    created = _createNote_blocking(dataFB, newText, privacy=privacy)
     if created.get("error"):
         return created
 
@@ -315,6 +334,7 @@ def re_createNote_blocking(
 # ---------------------------------------------------------------------
 # Default entry point (theo style fbchat-v2): func(dataFB, action, ...)
 # ---------------------------------------------------------------------
+
 
 async def checkNote(dataFB: dict[str, Any]) -> dict[str, Any]:
     variables = {"scale": 2}

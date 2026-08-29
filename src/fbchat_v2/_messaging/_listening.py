@@ -1,3 +1,22 @@
+"""
+Đường dẫn file:
+  src/fbchat_v2/_messaging/_listening.py
+
+Mục đích:
+  - Khởi tạo luồng lắng nghe tin nhắn (MQTT/WebSockets) thường.
+
+Cách hoạt động:
+  - Nạp dependency/guard cần thiết, thực hiện các async HTTP requests tới API nội bộ hoặc GraphQL của Facebook.
+  - Các thao tác request đều phải thông qua httpx.AsyncClient và module _core._utils để bảo đảm an toàn kết nối.
+  - Payload gửi đi/nhận về được xử lý JSON cẩn thận, bắt lỗi try-except đầy đủ để tránh crash hệ thống.
+
+File liên quan:
+  - src/main.py và các entrypoint khác.
+  - Phụ thuộc vào _core._session, _core._utils để khởi tạo và thao tác HTTP.
+
+Author: @m008v (MinhHuyDev)
+"""
+
 from __future__ import annotations
 
 import asyncio
@@ -69,9 +88,7 @@ class listeningEvent:
         except Empty:
             return None
 
-    async def get_message(
-        self, timeout: float | None = None
-    ) -> dict[str, Any] | None:
+    async def get_message(self, timeout: float | None = None) -> dict[str, Any] | None:
         """Chờ một tin nhắn mà không chặn event loop."""
         return await asyncio.to_thread(self.get_message_blocking, True, timeout)
 
@@ -170,7 +187,9 @@ class listeningEvent:
     def get_last_seq_id_blocking(self) -> int | None:
         previous = self.lastSeqID
         try:
-            self._apply_thread_data(_all_thread_data.func(self.dataFB), previous)
+            self._apply_thread_data(
+                _all_thread_data.func_blocking(self.dataFB), previous
+            )
         except Exception as error:  # lỗi mạng cần giữ sequence cũ để phục hồi
             self.lastSeqID = previous
             print(f"[{datetime.datetime.now()}] Không thể làm mới last_seq_id: {error}")
@@ -190,7 +209,7 @@ class listeningEvent:
         if self.syncToken is None or self.lastSeqID is None:
             if self.syncToken is not None:
                 self.syncToken = None
-            self.get_last_seq_id()
+            self.get_last_seq_id_blocking()
         if self.lastSeqID is None:
             print(
                 "Không có last_seq_id; hãy làm mới cookie Facebook rồi khởi động lại."
@@ -253,7 +272,7 @@ class listeningEvent:
         if is_overflow and self.retry_count < self.max_retries:
             self.retry_count += 1
             self.syncToken = None
-            self.get_last_seq_id()
+            self.get_last_seq_id_blocking()
             if self.lastSeqID is not None:
                 self._publish_pending_queue(client)
                 return
@@ -287,7 +306,7 @@ class listeningEvent:
             "gas": None,
             "pack": [],
         }
-        host = f"wss://edge-chat.facebook.com/chat-region=eag&sid={session_id}"
+        host = f"wss://edge-chat.facebook.com/chat?region=eag&sid={session_id}"
         parsed_host = urlparse(host)
         client = mqtt.Client(
             client_id="mqttwsclient",
@@ -302,7 +321,7 @@ class listeningEvent:
         client.on_disconnect = self._on_disconnect
         client.username_pw_set(username=json_minimal(user))
         client.ws_set_options(
-            path=f"{parsed_host.path}-{parsed_host.query}",
+            path=f"{parsed_host.path}?{parsed_host.query}",
             headers={
                 "Cookie": self.dataFB["cookieFacebook"],
                 "Origin": "https://www.facebook.com",
@@ -336,4 +355,4 @@ class listeningEvent:
             self.mqtt.disconnect()
 
     async def disconnect(self) -> None:
-        self.disconnect()
+        await asyncio.to_thread(self.disconnect_blocking)

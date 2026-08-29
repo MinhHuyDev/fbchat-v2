@@ -1,0 +1,4 @@
+"""Checksum bridge được workflow release ghi đè khi đóng gói wheel."""
+
+BRIDGE_RELEASE_VERSION: str | None = None
+BRIDGE_SHA256: dict[str, str] = {}

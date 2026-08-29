@@ -2,9 +2,10 @@
 
 > Các thao tác tài khoản Facebook và quản trị thread được xây trên `dataFB` cùng transport `httpx` của `_core`.
 
-[README chính](../../README.md) | [English](README_EN.md) | [Tài liệu API](../../DOCS.md)
+[![English](https://img.shields.io/badge/English-0b8ecf?style=flat-square)](README_EN.md)
+[![DOCS](https://img.shields.io/badge/DOCS-2563eb?style=flat-square)](../../DOCS.md)
 
-## Mục lục
+## 📋 Mục lục
 
 - [Vai trò](#vai-trò)
 - [Cấu trúc thư mục](#cấu-trúc-thư-mục)
@@ -20,7 +21,7 @@
 
 ---
 
-## Vai trò
+## 🎯 Vai trò
 
 `_features` chứa nghiệp vụ ngoài send/listen cơ bản:
 
@@ -36,14 +37,16 @@ Tầng này nhận `dataFB` đã được `_core._session.dataGetHome()` tạo. 
 
 ---
 
-## Cấu trúc thư mục
+## 🏗️ Cấu trúc thư mục
 
 ```text
-src/_features/
+src/fbchat_v2/_features/
 ├── _facebook/
+│   ├── _archivePost.py          # Lưu trữ bài timeline
 │   ├── _blocking.py             # Block/unblock user
 │   ├── _changeBio.py            # Đổi bio
 │   ├── _createPost.py           # Tạo bài timeline
+│   ├── _deletePost.py           # Xóa bài timeline
 │   ├── _get_user_info.py        # Profile info
 │   ├── _marketplace.py          # Marketplace create/read
 │   ├── _notification.py         # Notification
@@ -62,14 +65,16 @@ src/_features/
 
 ---
 
-## Public API
+## 🌐 Public API
 
 `_features._facebook.__all__`:
 
 ```python
 [
+    "_archivePost",
     "_changeBio",
     "_createPost",
+    "_deletePost",
     "_professional",
     "_search",
     "_blocking",
@@ -104,7 +109,7 @@ changed = await _changeEmoji.func(data_fb, "thread-id", "🔥")
 
 ---
 
-## Hợp đồng gọi async
+## 📝 Hợp đồng gọi async
 
 Mọi feature mạng trong thư mục này là coroutine. Chữ ký thường có dạng:
 
@@ -128,7 +133,7 @@ Quy tắc:
 
 ---
 
-## Facebook features
+## ✨ Facebook features
 
 ### `_changeBio.py`
 
@@ -169,6 +174,34 @@ Success:
     "urlPost": "https://www.facebook.com/...",
 }
 ```
+
+### `_archivePost.py`
+
+```python
+result = await _archivePost.func(
+    data_fb,
+    "1234567890",
+    typePost="my_post",
+    client=client,
+)
+```
+
+Sử dụng `useCometArchivePostMutation` để lưu trữ bài viết. Cơ chế hoạt động giống `_deletePost`.
+
+### `_deletePost.py`
+
+```python
+result = await _deletePost.func(
+    data_fb,
+    "1234567890",
+    typePost="my_post",
+    client=client,
+)
+```
+
+Sử dụng `useCometTrashPostMutation` để chuyển bài viết vào thùng rác.
+- `postID`: ID của bài viết cần xoá.
+- `typePost`: Loại bài viết (`"my_post"` cho bài tự đăng, `"others"` cho bài share/bài của người khác). Trả về `success` nếu thành công.
 
 ### `_professional.py`
 
@@ -310,7 +343,7 @@ Validation trước request:
 
 ---
 
-## Thread features
+## ✨ Thread features
 
 ### `_all_thread_data.py`
 
@@ -418,7 +451,7 @@ removed = await _addAdmin.func(
 
 ---
 
-## Tái sử dụng HTTP client
+## 🌍 Tái sử dụng HTTP client
 
 Một workflow nhiều request nên dùng một client:
 
@@ -443,7 +476,7 @@ Chỉ chạy song song các action độc lập. Không `gather()` hai mutation 
 
 ---
 
-## Kết quả và lỗi
+## 🩺 Kết quả và lỗi
 
 Module cũ chưa dùng một model kết quả thống nhất. Các dạng phổ biến:
 
@@ -468,7 +501,7 @@ Không coi HTTP 200 là success. Facebook thường đặt error trong GraphQL `
 
 ---
 
-## Sơ đồ phụ thuộc
+## 🔗 Sơ đồ phụ thuộc
 
 ```mermaid
 flowchart LR
@@ -485,7 +518,7 @@ flowchart LR
 
 ---
 
-## Quy tắc thêm feature
+## 📏 Quy tắc thêm feature
 
 1. Validate input trước I/O.
 2. Tách `_build_request`, transport call và `_parse_response`.
@@ -500,7 +533,7 @@ flowchart LR
 
 ---
 
-## Khắc phục sự cố
+## 🩺 Khắc phục sự cố
 
 | Hiện tượng | Nguyên nhân | Xử lý |
 |---|---|---|

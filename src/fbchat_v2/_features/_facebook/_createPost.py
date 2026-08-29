@@ -1,3 +1,22 @@
+"""
+Đường dẫn file:
+  src/fbchat_v2/_features/_facebook/_createPost.py
+
+Mục đích:
+  - Tạo bài viết mới trên dòng thời gian (Timeline).
+
+Cách hoạt động:
+  - Nạp dependency/guard cần thiết, thực hiện các async HTTP requests tới API nội bộ hoặc GraphQL của Facebook.
+  - Các thao tác request đều phải thông qua httpx.AsyncClient và module _core._utils để bảo đảm an toàn kết nối.
+  - Payload gửi đi/nhận về được xử lý JSON cẩn thận, bắt lỗi try-except đầy đủ để tránh crash hệ thống.
+
+File liên quan:
+  - src/main.py và các entrypoint khác.
+  - Phụ thuộc vào _core._session, _core._utils để khởi tạo và thao tác HTTP.
+
+Author: @m008v (MinhHuyDev)
+"""
+
 from __future__ import annotations
 
 import json
@@ -105,7 +124,6 @@ def _parse_result(payload: dict[str, Any]) -> dict[str, Any]:
             "messages": message or "Facebook không trả về bài viết đã tạo.",
         }
     return {"success": 1, "messages": "Tạo bài viết thành công!", "urlPost": url}
-
 
 
 async def func(

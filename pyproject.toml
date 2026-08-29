@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "fbchat-v2"
-version = "2.2.0"
+version = "2.3.0"
 description = "Async-first, account-based Python library for the unofficial Facebook Messenger API with E2EE support."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -27,12 +27,14 @@ keywords = [
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Communications :: Chat",
     "Topic :: Internet",
     "Topic :: Software Development :: Libraries :: Python Modules",
@@ -54,6 +56,8 @@ dev = [
     "twine>=5.0.0",
     "pytest>=8.0.0",
     "pytest-asyncio>=0.23.0",
+    "black",
+    "mypy>=1.11.0",
     "ruff>=0.4.0",
 ]
 
@@ -70,23 +74,37 @@ packages = ["src/fbchat_v2"]
 
 [tool.hatch.build.targets.sdist]
 include = [
-    "src/fbchat_v2/**",
-    "README.md",
-    "README_EN.md",
-    "CHANGELOG.md",
-    "LICENSE",
-    "pyproject.toml",
+    "/src/fbchat_v2/**",
+    "/README.md",
+    "/README_EN.md",
+    "/CHANGELOG.md",
+    "/LICENSE",
+    "/pyproject.toml",
 ]
 exclude = [
     "**/__pycache__",
     "**/*.pyc",
     "**/config.json",
-    "build/**",
-    "bridge-e2ee/meta/**",
-    "tests/**",
-    ".venv/**",
+    "/build/**",
+    "/dist/**",
+    "/.artifacts/**",
+    "/tests/**",
+    "/.venv*/**",
 ]
 
 [tool.ruff]
-line-length = 100
+line-length = 88
 target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E9", "F"]
+
+[tool.black]
+line-length = 88
+target-version = ["py310"]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+warn_unused_configs = true
+files = ["src/fbchat_v2"]

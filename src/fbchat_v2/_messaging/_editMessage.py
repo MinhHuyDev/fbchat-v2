@@ -1,10 +1,29 @@
+"""
+Đường dẫn file:
+  src/fbchat_v2/_messaging/_editMessage.py
+
+Mục đích:
+  - Chỉnh sửa nội dung tin nhắn đã gửi.
+
+Cách hoạt động:
+  - Nạp dependency/guard cần thiết, thực hiện các async HTTP requests tới API nội bộ hoặc GraphQL của Facebook.
+  - Các thao tác request đều phải thông qua httpx.AsyncClient và module _core._utils để bảo đảm an toàn kết nối.
+  - Payload gửi đi/nhận về được xử lý JSON cẩn thận, bắt lỗi try-except đầy đủ để tránh crash hệ thống.
+
+File liên quan:
+  - src/main.py và các entrypoint khác.
+  - Phụ thuộc vào _core._session, _core._utils để khởi tạo và thao tác HTTP.
+
+Author: @m008v (MinhHuyDev)
+"""
+
 from __future__ import annotations
 
 import json
 import ssl
 import asyncio
 from threading import Event
-from typing import Any
+from typing import Any, TypedDict
 from urllib.parse import urlparse
 
 import paho.mqtt.client as mqtt
@@ -21,6 +40,15 @@ LS_TOPIC = "/ls_req"
 MQTT_HOST = "edge-chat.facebook.com"
 EDIT_MESSAGE_VERSION_ID = "6903494529735864"
 _DEFAULT_TIMEOUT = 20
+
+
+class _PublishState(TypedDict):
+    """Trạng thái dùng chung giữa các callback MQTT của một lần publish."""
+
+    published: int
+    errors: list[str]
+
+
 _MISSING = object()
 
 
@@ -90,7 +118,7 @@ def _make_mqtt_client(dataFB: dict[str, Any]) -> mqtt.Client:
         "pack": [],
     }
 
-    host = f"wss://{MQTT_HOST}/chat-region=eag&sid={session_id}"
+    host = f"wss://{MQTT_HOST}/chat?region=eag&sid={session_id}"
     parsed_host = urlparse(host)
     client = mqtt.Client(
         client_id="mqttwsclient",
@@ -102,7 +130,7 @@ def _make_mqtt_client(dataFB: dict[str, Any]) -> mqtt.Client:
     client.tls_insecure_set(False)
     client.username_pw_set(username=json_minimal(user))
     client.ws_set_options(
-        path=f"{parsed_host.path}-{parsed_host.query}",
+        path=f"{parsed_host.path}?{parsed_host.query}",
         headers={
             "Cookie": dataFB["cookieFacebook"],
             "Origin": "https://www.facebook.com",
@@ -126,7 +154,7 @@ def _publish_ls_requests(
 
     connected = Event()
     published = Event()
-    state = {
+    state: _PublishState = {
         "published": 0,
         "errors": [],
     }
@@ -264,7 +292,9 @@ async def editMessage(
     newText: str,
     timeout: int = _DEFAULT_TIMEOUT,
 ) -> dict[str, Any]:
-    return await asyncio.to_thread(_editMessage_blocking, dataFB, messageID, newText, timeout)
+    return await asyncio.to_thread(
+        _editMessage_blocking, dataFB, messageID, newText, timeout
+    )
 
 
 async def func(

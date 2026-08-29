@@ -7,7 +7,11 @@ phiên bản tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ---
 
-## [Unreleased] - async-first hardening
+## [Unreleased]
+
+## [2.3.0] - 2026-08-29
+
+### Changed
 
 - Chuyển các feature HTTP sang transport `httpx` sync/async dùng chung; legacy adapter chỉ còn ở boundary nội bộ có lý do rõ.
 - Viết lại bot mẫu, listener thường, listener E2EE và bridge actions với lifecycle async rõ ràng.
@@ -15,6 +19,39 @@ phiên bản tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 - Chặn SSRF ở Go `downloadMedia`; nâng Go 1.26.5 và `golang.org/x/net` v0.55.0 để xử lý toàn bộ vulnerability có call path mà `govulncheck` phát hiện.
 - Sửa lỗi gỡ admin báo sai action, `professional` xử lý bool, profile bổ sung dựng header sai, Marketplace khóa nhầm category và post âm thầm bỏ attachment.
 - Viết lại tài liệu hiện hành theo async/await. Các mục release cũ bên dưới là lịch sử và có thể nhắc API sync đã tồn tại tại thời điểm phát hành.
+
+### Security
+
+- Thay RNG tạo `AdvSecretKey` của bridge bằng `crypto/rand` và trả lỗi nếu nguồn
+  ngẫu nhiên an toàn thất bại.
+- Pin bridge tải tự động vào đúng tag của package, bắt buộc SHA-256 được đóng
+  trong wheel, kiểm tra redirect/size và fail closed khi checksum sai.
+- Ghi device state tuần tự bằng temp file, `fsync` và atomic rename; không còn
+  bỏ qua lỗi lưu identity, session hoặc prekey.
+- Mutation E2EE rollback cả RAM khi persistence lỗi; callback `deviceData` chạy
+  ngoài khóa lưu trữ và coalesce snapshot để không chặn Signal ratchet.
+- File config cookie được tạo atomic với quyền riêng tư; plaintext nội dung chat
+  và traceback bị ẩn mặc định.
+
+### Fixed
+
+- Sửa async `disconnect()` không await công việc shutdown.
+- Mutation unfriend/archive/delete không còn báo thành công khi GraphQL trả
+  `data=null`, `success=false` hoặc có `errors`.
+- Hoàn thiện lifecycle identity/session/prekey trong DeviceStore và trả lỗi rõ
+  cho các store operation chưa được bridge hỗ trợ.
+- Lưu đầy đủ LID/account/platform/device metadata, đồng bộ connect/disconnect và
+  không hạ cấp yêu cầu gửi E2EE sang transport thường khi E2EE chưa sẵn sàng.
+- Loại 7 lỗi `from __future__` làm source không compile.
+
+### Packaging and CI
+
+- Wheel PyPI giữ public namespace `fbchat_v2` của các bản trước, không đóng gói
+  namespace nội bộ `src`; thêm smoke test cho wheel và sdist cài sạch.
+- CI enforce compile, Ruff, Black, mypy, pytest Python 3.10-3.14, Go test/vet,
+  package smoke test và JavaScript syntax.
+- Auto-download bridge chỉ được bật khi package chứa checksum của đúng năm binary;
+  package fail-closed cho tới khi asset GitHub Release `v2.3.0` được phát hành.
 
 ## [2.2.0-beta] - 2026-07-06
 

@@ -1,14 +1,30 @@
-"""HTTP transport dùng chung, ưu tiên async và vẫn giữ tương thích sync."""
+"""
+Đường dẫn file:
+  src/fbchat_v2/_core/_http.py
+
+Mục đích:
+  - Wrapper bao bọc httpx.AsyncClient để thực hiện các request HTTP cơ bản.
+
+Cách hoạt động:
+  - Nạp dependency/guard cần thiết, thực hiện các async HTTP requests tới API nội bộ hoặc GraphQL của Facebook.
+  - Các thao tác request đều phải thông qua httpx.AsyncClient và module _core._utils để bảo đảm an toàn kết nối.
+  - Payload gửi đi/nhận về được xử lý JSON cẩn thận, bắt lỗi try-except đầy đủ để tránh crash hệ thống.
+
+File liên quan:
+  - src/main.py và các entrypoint khác.
+  - Phụ thuộc vào _core._session, _core._utils để khởi tạo và thao tác HTTP.
+
+Author: @m008v (MinhHuyDev)
+"""
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, TypeAlias
 
 import httpx
 
-
 DEFAULT_TIMEOUT = 60.0
-TimeoutValue = float | httpx.Timeout | None
+TimeoutValue: TypeAlias = float | httpx.Timeout | None
 
 
 def _clean_kwargs(

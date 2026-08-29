@@ -5,13 +5,14 @@ website/
 *.egg-info/
 *.egg
 .Python
-.venv/
+.venv*/
 .env
 
 # Build artefact
 build/
 dist/
 wheels/
+.artifacts/
 *.whl
 *.tar.gz
 

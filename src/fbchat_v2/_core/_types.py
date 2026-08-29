@@ -9,7 +9,7 @@ Cung cấp TypedDict và type aliases cho các cấu trúc dữ liệu phổ bi�
 
 from __future__ import annotations
 
-from typing import Any, NotRequired, TypedDict
+from typing import Any, TypedDict
 
 
 class DataFB(TypedDict):
@@ -28,21 +28,27 @@ class DataFB(TypedDict):
     cookieFacebook: str
 
 
-class SuccessResponse(TypedDict):
-    """Chuẩn response khi thành công - ``{"success": 1, ...}``."""
+class _SuccessResponseOptional(TypedDict, total=False):
+    payload: dict[str, Any]
+    messages: str
+    data: dict[str, Any]
+
+
+class SuccessResponse(_SuccessResponseOptional):
+    """Chuẩn response khi thành công — ``{"success": 1, ...}``."""
 
     success: int  # always 1
-    payload: NotRequired[dict[str, Any]]
-    messages: NotRequired[str]
-    data: NotRequired[dict[str, Any]]
 
 
-class ErrorResponse(TypedDict):
-    """Chuẩn response khi lỗi - ``{"error": 1, ...}``."""
+class _ErrorResponseOptional(TypedDict, total=False):
+    payload: dict[str, Any]
+    messages: str
+
+
+class ErrorResponse(_ErrorResponseOptional):
+    """Chuẩn response khi lỗi — ``{"error": 1, ...}``."""
 
     error: int  # always 1
-    payload: NotRequired[dict[str, Any]]
-    messages: NotRequired[str]
 
 
 class RequestKwargs(TypedDict):
@@ -56,12 +62,15 @@ class RequestKwargs(TypedDict):
     verify: bool
 
 
-class LoginSuccessPayload(TypedDict):
+class _LoginSuccessPayloadOptional(TypedDict, total=False):
+    cookiesKeyValueList: list[dict[str, Any]]
+
+
+class LoginSuccessPayload(_LoginSuccessPayloadOptional):
     """Payload khi đăng nhập thành công."""
 
     setCookies: str
     accessTokenFB: str
-    cookiesKeyValueList: NotRequired[list[dict[str, Any]]]
 
 
 class LoginErrorPayload(TypedDict):

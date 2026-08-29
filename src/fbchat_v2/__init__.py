@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-__version__ = "2.2.0"
+from ._core import __version__
+
 __author__ = "MinhHuyDev"
-__license__ = "MIT"
+__license__ = "Apache-2.0"
 
 from ._core._session import dataGetHome
 from ._core._storage import EnvSessionStorage, FileSessionStorage

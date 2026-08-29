@@ -1,3 +1,22 @@
+"""
+Đường dẫn file:
+  src/fbchat_v2/_features/_facebook/_marketplace.py
+
+Mục đích:
+  - Thao tác đăng và lấy thông tin sản phẩm trên Marketplace.
+
+Cách hoạt động:
+  - Nạp dependency/guard cần thiết, thực hiện các async HTTP requests tới API nội bộ hoặc GraphQL của Facebook.
+  - Các thao tác request đều phải thông qua httpx.AsyncClient và module _core._utils để bảo đảm an toàn kết nối.
+  - Payload gửi đi/nhận về được xử lý JSON cẩn thận, bắt lỗi try-except đầy đủ để tránh crash hệ thống.
+
+File liên quan:
+  - src/main.py và các entrypoint khác.
+  - Phụ thuộc vào _core._session, _core._utils để khởi tạo và thao tác HTTP.
+
+Author: @m008v (MinhHuyDev)
+"""
+
 from __future__ import annotations
 
 import json
@@ -238,6 +257,7 @@ def _parse_detail_result(payload: dict[str, Any]) -> dict[str, Any]:
             "error": 1,
             "messages": _error_message(payload, "Không thể đọc thông tin sản phẩm."),
         }
+
 
 async def createItem(
     dataFB: dict[str, Any],

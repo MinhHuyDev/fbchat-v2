@@ -1,3 +1,22 @@
+"""
+Đường dẫn file:
+  src/fbchat_v2/_core/_utils.py
+
+Mục đích:
+  - Chứa các tiện ích dùng chung như build form GraphQL, parse JSON, escape string.
+
+Cách hoạt động:
+  - Nạp dependency/guard cần thiết, thực hiện các async HTTP requests tới API nội bộ hoặc GraphQL của Facebook.
+  - Các thao tác request đều phải thông qua httpx.AsyncClient và module _core._utils để bảo đảm an toàn kết nối.
+  - Payload gửi đi/nhận về được xử lý JSON cẩn thận, bắt lỗi try-except đầy đủ để tránh crash hệ thống.
+
+File liên quan:
+  - src/main.py và các entrypoint khác.
+  - Phụ thuộc vào _core._session, _core._utils để khởi tạo và thao tác HTTP.
+
+Author: @m008v (MinhHuyDev)
+"""
+
 from __future__ import annotations
 
 import json
@@ -15,7 +34,7 @@ import httpx
 
 from fbchat_v2._core._http import get_async, get_blocking, post_async, post_blocking
 
-# User-Agent pool - xoay ngẫu nhiên để giảm fingerprint detection từ Facebook
+# User-Agent pool — xoay ngẫu nhiên để giảm fingerprint detection từ Facebook
 _USER_AGENTS: list[str] = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
@@ -39,7 +58,7 @@ def Headers(
     headers["Sec-Fetch-Dest"] = "empty"
     headers["Referer"] = "https://" + Host
     headers["sec-ch-ua"] = _SEC_CH_UA
-    headers["sec-ch-ua-mobile"] = "-0"
+    headers["sec-ch-ua-mobile"] = "?0"
     headers["sec-ch-ua-platform"] = '"Windows"'
     headers["Accept-Language"] = "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7"
     return headers
@@ -54,7 +73,7 @@ def digitToChar(digit: int) -> str:
 def str_base(number: int, base: int) -> str:
     if number < 0:
         return "-" + str_base(-number, base)
-    (d, m) = divmod(number, base)
+    d, m = divmod(number, base)
     if d > 0:
         return str_base(d, base) + digitToChar(m)
     return digitToChar(m)

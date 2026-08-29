@@ -1,3 +1,22 @@
+"""
+Đường dẫn file:
+  src/fbchat_v2/_features/_thread/_all_thread_data.py
+
+Mục đích:
+  - Lấy thông tin và danh sách các đoạn chat/thread.
+
+Cách hoạt động:
+  - Nạp dependency/guard cần thiết, thực hiện các async HTTP requests tới API nội bộ hoặc GraphQL của Facebook.
+  - Các thao tác request đều phải thông qua httpx.AsyncClient và module _core._utils để bảo đảm an toàn kết nối.
+  - Payload gửi đi/nhận về được xử lý JSON cẩn thận, bắt lỗi try-except đầy đủ để tránh crash hệ thống.
+
+File liên quan:
+  - src/main.py và các entrypoint khác.
+  - Phụ thuộc vào _core._session, _core._utils để khởi tạo và thao tác HTTP.
+
+Author: @m008v (MinhHuyDev)
+"""
+
 from __future__ import annotations
 
 import asyncio
@@ -7,7 +26,12 @@ from typing import Any
 
 import httpx
 
-from fbchat_v2._core._utils import formAll, mainRequests, send_request, send_request_async
+from fbchat_v2._core._utils import (
+    formAll,
+    mainRequests,
+    send_request,
+    send_request_async,
+)
 
 GRAPHQLBATCH_TIMEOUT = 60.0
 GRAPHQLBATCH_RETRIES = 2
@@ -130,6 +154,13 @@ def _build_result(response: httpx.Response, elapsed: float) -> dict[str, Any]:
         },
     }
 
+
+def func_blocking(
+    dataFB: dict[str, Any], *, client: httpx.Client | None = None
+) -> dict[str, Any]:
+    started = time.perf_counter()
+    response = _post_graphqlbatch(dataFB, client)
+    return _build_result(response, time.perf_counter() - started)
 
 
 async def func(

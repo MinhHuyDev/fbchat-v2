@@ -18,6 +18,7 @@ exclude src/fbchat_v2/config.json
 prune build
 prune dist
 prune .venv
+prune .venv-test
 prune tests
 prune bridge-e2ee/meta
 prune docs/_build

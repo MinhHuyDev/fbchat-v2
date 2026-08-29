@@ -1,3 +1,22 @@
+"""
+Đường dẫn file:
+  src/fbchat_v2/_core/_facebookLogin.py
+
+Mục đích:
+  - Xử lý logic đăng nhập Facebook bằng credential (username/password hoặc cookie).
+
+Cách hoạt động:
+  - Nạp dependency/guard cần thiết, thực hiện các async HTTP requests tới API nội bộ hoặc GraphQL của Facebook.
+  - Các thao tác request đều phải thông qua httpx.AsyncClient và module _core._utils để bảo đảm an toàn kết nối.
+  - Payload gửi đi/nhận về được xử lý JSON cẩn thận, bắt lỗi try-except đầy đủ để tránh crash hệ thống.
+
+File liên quan:
+  - src/main.py và các entrypoint khác.
+  - Phụ thuộc vào _core._session, _core._utils để khởi tạo và thao tác HTTP.
+
+Author: @m008v (MinhHuyDev)
+"""
+
 import os
 import asyncio
 import json
@@ -168,10 +187,7 @@ def _post_json(url, data, headers, proxies):
     status_code = getattr(response, "status_code", 200)
     response_text = getattr(response, "text", "")
     if status_code >= 400:
-        fallback = (
-            f"HTTP {status_code}: "
-            f"{_compact_response_text(response_text)}"
-        )
+        fallback = f"HTTP {status_code}: " f"{_compact_response_text(response_text)}"
         return _extract_error_payload(payload, fallback, status_code=status_code)
     if payload is None:
         return {
@@ -238,10 +254,12 @@ class loginFacebook:
             f"{randStr(8)}-{randStr(4)}-{randStr(4)}-{randStr(4)}-{randStr(12)}"
         )
         self.manchineID = randStr(24)
-        self.usernameFacebook = username                                      # IDFB or email/phone number need login (IDFB hoặc email/sđt cần đăng nhập)
-        self.passwordFacebook = password                                      # Password of the account (Mật khẩu của tài khoản)
-        self.twoTokenAccess = AuthenticationGoogleCode                        # string of 16 characters (or more) provided by Facebook (một chuỗi gồm 16 kí tụ (hoặc hơn) được cấp bởi Facebook)
-        self.proxies = proxies                                                # Proxy settings for the request (format: ip:port) (Cài đặt proxy cho yêu cầu (định dạng: ip:port))
+        self.usernameFacebook = username  # IDFB or email/phone number need login (IDFB hoặc email/sđt cần đăng nhập)
+        self.passwordFacebook = (
+            password  # Password of the account (Mật khẩu của tài khoản)
+        )
+        self.twoTokenAccess = AuthenticationGoogleCode  # string of 16 characters (or more) provided by Facebook (một chuỗi gồm 16 kí tụ (hoặc hơn) được cấp bởi Facebook)
+        self.proxies = proxies  # Proxy settings for the request (format: ip:port) (Cài đặt proxy cho yêu cầu (định dạng: ip:port))
         self.apiKey = _get_config_value("FBCHAT_API_KEY", default=DEFAULT_FB4A_API_KEY)
         self.appAccessToken = _get_config_value(
             "FBCHAT_APP_ACCESS_TOKEN",
@@ -440,7 +458,7 @@ class loginFacebook:
         )
 
     async def main(self):
-        """Async version của main() - toàn bộ flow login chạy non-blocking."""
+        """Async version của main() — toàn bộ flow login chạy non-blocking."""
         data_form = self._base_form(self.passwordFacebook, "password", 1)
         dataJson = await self._login_async(data_form)
         error = dataJson.get("error")

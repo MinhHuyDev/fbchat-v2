@@ -2,9 +2,10 @@
 
 > Session, HTTP transport, storage, login credential và utility dùng chung cho toàn bộ `fbchat-v2`.
 
-[README chính](../../README.md) | [English](README_EN.md) | [Tài liệu API](../../DOCS.md)
+[![English](https://img.shields.io/badge/English-0b8ecf?style=flat-square)](README_EN.md)
+[![DOCS](https://img.shields.io/badge/DOCS-2563eb?style=flat-square)](../../DOCS.md)
 
-## Mục lục
+## 📋 Mục lục
 
 - [Vai trò](#vai-trò)
 - [Cấu trúc thư mục](#cấu-trúc-thư-mục)
@@ -21,7 +22,7 @@
 
 ---
 
-## Vai trò
+## 🎯 Vai trò
 
 `_core` là nền móng của codebase:
 
@@ -37,10 +38,10 @@ Feature trong `_features` và `_messaging` không nên tự dựng session, tự
 
 ---
 
-## Cấu trúc thư mục
+## 🏗️ Cấu trúc thư mục
 
 ```text
-src/_core/
+src/fbchat_v2/_core/
 ├── __init__.py          # Version và module exports
 ├── _http.py             # httpx Client/AsyncClient transport
 ├── _session.py          # Cookie -> dataFB
@@ -54,9 +55,9 @@ src/_core/
 
 ---
 
-## Public API
+## 🌐 Public API
 
-`src/_core/__init__.py` công bố:
+`src/fbchat_v2/_core/__init__.py` công bố:
 
 ```python
 __all__ = ["_session", "_utils", "_facebookLogin", "__version__"]
@@ -74,7 +75,7 @@ Application code thường chỉ cần `dataGetHome`, storage và public feature
 
 ---
 
-## Hợp đồng `dataFB`
+## 📝 Hợp đồng `dataFB`
 
 `dataFB` là dict session chung giữa ba tầng:
 
@@ -106,7 +107,7 @@ Field bắt buộc do `_session.REQUIRED_SESSION_FIELDS` quy định:
 
 ---
 
-## `_session.py`
+## 💾 `_session.py`
 
 ### `dataGetHome`
 
@@ -151,7 +152,7 @@ Hàm trả `None` cho cookie rỗng, request lỗi, HTTP status lỗi hoặc thi
 
 ---
 
-## `_storage.py`
+## 📌 `_storage.py`
 
 ### `SessionStorage`
 
@@ -194,7 +195,7 @@ data_fb = await dataGetHome(storage=storage)
 
 ---
 
-## `_http.py`
+## 🌍 `_http.py`
 
 Transport dùng chung:
 
@@ -230,7 +231,7 @@ Khi truyền client do caller sở hữu, config `verify` thuộc về client. K
 
 ---
 
-## `_utils.py`
+## 📌 `_utils.py`
 
 ### HTTP và JSON helper
 
@@ -287,7 +288,7 @@ Các ID này chỉ phục vụ protocol client; không dùng làm security token
 
 ---
 
-## `_facebookLogin.py`
+## 🔑 `_facebookLogin.py`
 
 ### API
 
@@ -336,7 +337,7 @@ Credential login có thể gặp:
 
 ---
 
-## Sơ đồ phụ thuộc
+## 🔗 Sơ đồ phụ thuộc
 
 ```mermaid
 flowchart TD
@@ -358,7 +359,7 @@ flowchart TD
 
 ---
 
-## Quy tắc phát triển
+## 📏 Quy tắc phát triển
 
 - Public API có I/O mới phải async-first.
 - HTTP async phải dùng `httpx.AsyncClient`, không bọc `requests` mới bằng `to_thread` nếu không có lý do protocol cụ thể.
@@ -372,7 +373,7 @@ flowchart TD
 
 ---
 
-## Khắc phục sự cố
+## 🩺 Khắc phục sự cố
 
 | Hiện tượng | Nguyên nhân thường gặp | Cách kiểm tra |
 |---|---|---|

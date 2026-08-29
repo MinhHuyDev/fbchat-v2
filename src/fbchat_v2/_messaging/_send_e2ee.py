@@ -6,12 +6,12 @@ Gửi tin nhắn Facebook Messenger có **mã hoá đầu-cuối E2EE** (Secret
 Conversations / Labyrinth) thông qua binary Go ``fbchat-bridge-e2ee``.
 
 Module này dùng **chung** lớp ``_BridgeProcess`` và logic discovery binary
-của ``_listening_e2ee.py`` - khuyến nghị **tái sử dụng bridge của listener**
+của ``_listening_e2ee.py`` — khuyến nghị **tái sử dụng bridge của listener**
 thay vì spawn thêm process (mỗi process phải pair lại với Meta).
 
 Hai chế độ dùng:
 
-1. **Reuse** (khuyến nghị) - nhanh, không phải pair lại::
+1. **Reuse** (khuyến nghị) — nhanh, không phải pair lại::
 
        from fbchat_v2._messaging._listening_e2ee import listeningE2EEEvent
        from fbchat_v2._messaging._send_e2ee import api as E2EESender
@@ -24,14 +24,14 @@ Hai chế độ dùng:
          sender.send(chat_jid="100012345678@msgr", contentSend="pong")
          sender.send_to_user("100012345678", "chủ động nhắn bằng Facebook ID")
 
-2. **Standalone** - tự spawn bridge, tự ``connect()`` + ``connect_e2ee()``::
+2. **Standalone** — tự spawn bridge, tự ``connect()`` + ``connect_e2ee()``::
 
        sender = E2EESender(dataFB=dataFB, log_level="warn")
        sender.connect()           # blocking pairing handshake
          sender.send(chat_jid="100012345678", contentSend="hello")  # auto → 100012345678@msgr
        sender.close()
 
-API ``send(...)`` mô phỏng style của ``_send.py`` - trả về dict với
+API ``send(...)`` mô phỏng style của ``_send.py`` — trả về dict với
 ``{"success": 1, ...}`` hoặc ``{"error": 1, ...}``.
 
 Tham khảo: meta-messenger.js · ``Client.sendE2EEMessage()``.
@@ -53,7 +53,6 @@ from fbchat_v2._messaging._listening_e2ee import (
     listeningE2EEEvent,
     _REQUIRED_COOKIES,
 )
-
 
 E2EE_MESSENGER_SERVER = "msgr"
 
@@ -109,7 +108,7 @@ def chat_jid_from_user_id(user_id: str | int) -> str:
 
 
 class api:
-    """Sender E2EE - tương tự ``_send.api`` nhưng cho Secret Conversations.
+    """Sender E2EE — tương tự ``_send.api`` nhưng cho Secret Conversations.
 
     Khởi tạo:
         - ``api(listener=...)``  → reuse bridge của ``listeningE2EEEvent``
@@ -154,7 +153,7 @@ class api:
         self._owns_bridge = listener is None  # standalone → ta tự đóng
 
         # Standalone-only state
-        self.dataFB = dataFB
+        self.dataFB: dict[str, Any] | None = dataFB
         self.log_level = log_level
         self.device_path = device_path
         self.e2ee_memory_only = e2ee_memory_only
@@ -164,10 +163,10 @@ class api:
 
         # Compat fields giống _send.api
         self.results: dict[str, Any] = {}
-        self.chat_jid = None
-        self.content = None
-        self.replyToId = None
-        self.replyToSenderJid = None
+        self.chat_jid: str | None = None
+        self.content: str | None = None
+        self.replyToId: str | None = None
+        self.replyToSenderJid: str | None = None
 
     # ------------------------------------------------------------------
     @property
@@ -177,13 +176,13 @@ class api:
             br = self._listener._bridge
             if br is None:
                 raise RuntimeError(
-                    "Listener chưa connect - gọi listener.connect_mqtt() "
+                    "Listener chưa connect — gọi listener.connect_mqtt() "
                     "(thường trong daemon thread) trước khi send."
                 )
             return br
         if self._bridge is None:
             raise RuntimeError(
-                "Standalone sender chưa connect - gọi sender.connect() trước."
+                "Standalone sender chưa connect — gọi sender.connect() trước."
             )
         return self._bridge
 
@@ -197,6 +196,10 @@ class api:
         if self._connected:
             return {"already": True}
 
+        data_fb = self.dataFB
+        if data_fb is None:
+            raise RuntimeError("Standalone sender không có dữ liệu phiên Facebook.")
+
         binary = (
             Path(self._binary_path_override)
             if self._binary_path_override
@@ -204,7 +207,7 @@ class api:
         )
         self._bridge = _BridgeProcess(binary)
 
-        cks = parse_cookie_string(self.dataFB["cookieFacebook"])
+        cks = parse_cookie_string(data_fb["cookieFacebook"])
         missing = [c for c in _REQUIRED_COOKIES if c not in cks]
         if missing:
             self._bridge.close()
