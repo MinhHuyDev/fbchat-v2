@@ -3,11 +3,9 @@
 # Docs: https://github.com/github-linguist/linguist/blob/main/docs/overrides.md
 # =============================================================================
 
-# Bridge E2EE là code Go vendor từ whatsmeow / mautrix-meta — không tính vào
-# ngôn ngữ chính của repo (vốn là Python).
-bridge-e2ee/**             linguist-vendored
+# Bridge E2EE trong main.go và bridge/ là code Go do dự án duy trì nên phải
+# được GitHub Linguist tính vào thống kê ngôn ngữ. Chỉ loại submodule upstream.
 bridge-e2ee/meta/**        linguist-vendored
-bridge-e2ee/bridge/**      linguist-vendored
 
 # Binary build từ Go — không phải source code.
 build/**                   linguist-generated
