@@ -84,9 +84,11 @@ Of course, there may still be small bugs that are hard to find, or parts of the 
 
 ### Facebook Features (`_features._facebook`)
 
-- 📝 Create posts, update bio, and register profile sections
-- 👤 Search users, fetch profile information, and manage notifications
-- 🚫 Block / unblock, manage Marketplace, and manage Professional Mode
+- ❤️ **React and unreact to timeline posts** ([`_reactionPost`](src/fbchat_v2/_features/_facebook/README_EN.md#-spotlight-_reactionpostpy-post-reactions): Like, Love, Care, Haha, Wow, Sad, Angry, Undo)
+- 📝 Create posts (`_createPost`), archive posts (`_archivePost`), delete posts (`_deletePost`)
+- 👤 Search users (`_search`), fetch profile info (`_get_user_info`), manage notifications (`_notification`)
+- 🚫 Block / unblock (`_blocking`), unfriend users (`_unFriend`), manage Marketplace and Professional Mode
+- 📖 *See full details in [Facebook Features Documentation](src/fbchat_v2/_features/_facebook/README_EN.md)*
 
 ### Recently Updated
 

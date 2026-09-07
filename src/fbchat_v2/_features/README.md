@@ -42,6 +42,7 @@ Tầng này nhận `dataFB` đã được `_core._session.dataGetHome()` tạo. 
 ```text
 src/fbchat_v2/_features/
 ├── _facebook/
+│   ├── README.md                # Tài liệu chi tiết Facebook features
 │   ├── _archivePost.py          # Lưu trữ bài timeline
 │   ├── _blocking.py             # Block/unblock user
 │   ├── _changeBio.py            # Đổi bio
@@ -51,8 +52,10 @@ src/fbchat_v2/_features/
 │   ├── _marketplace.py          # Marketplace create/read
 │   ├── _notification.py         # Notification
 │   ├── _professional.py         # Professional mode
+│   ├── _reactionPost.py         # Thả/gỡ cảm xúc bài viết
 │   ├── _registerOnProfile.py    # Additional profile
-│   └── _search.py               # User search
+│   ├── _search.py               # User search
+│   └── _unFriend.py             # Hủy kết bạn
 ├── _thread/
 │   ├── _addAdmin.py
 │   ├── _all_thread_data.py
@@ -71,17 +74,19 @@ src/fbchat_v2/_features/
 
 ```python
 [
-    "_archivePost",
+    "_blocking",
     "_changeBio",
     "_createPost",
-    "_deletePost",
-    "_professional",
-    "_search",
-    "_blocking",
-    "_registerOnProfile",
-    "_notification",
-    "_marketplace",
     "_get_user_info",
+    "_marketplace",
+    "_notification",
+    "_professional",
+    "_registerOnProfile",
+    "_search",
+    "_unFriend",
+    "_archivePost",
+    "_deletePost",
+    "_reactionPost",
 ]
 ```
 
@@ -134,6 +139,37 @@ Quy tắc:
 ---
 
 ## ✨ Facebook features
+
+> 💡 *Tài liệu chi tiết và đầy đủ các ví dụ cho toàn bộ 13 module Facebook cá nhân xem tại [`src/fbchat_v2/_features/_facebook/README.md`](_facebook/README.md).*
+
+### `_reactionPost.py`
+
+```python
+result = await _reactionPost.func(
+    data_fb,
+    postID="123456789012345",
+    typeReactions="LOVE",
+    client=client,
+)
+```
+
+| Tham số | Kiểu | Mặc định | Mô tả |
+|---|---|---|---|
+| `dataFB` | `dict` | *Bắt buộc* | Session state từ `dataGetHome()` |
+| `postID` | `str` | *Bắt buộc* | ID bài viết Facebook (ID số hoặc chuỗi Base64 `feedback:...`) |
+| `typeReactions` | `str` | *Bắt buộc* | Loại cảm xúc: `LIKE`, `LOVE`, `CARE`, `HAHA`, `WOW`, `SAD`, `ANGRY`, hoặc `UNDO`/`UNREACT` |
+| `client` | `httpx.AsyncClient` | `None` | Client HTTP dùng chung (tùy chọn) |
+
+- **GraphQL Mutation**: `CometUFIFeedbackReactMutation` (doc_id `1054626957723036`).
+- **Target ID chuẩn hóa**: Tự động bọc Base64 định dạng `feedback:<postID>` nếu ID truyền vào ở dạng số thô.
+- **Hỗ trợ Alias & Case-insensitive**: Chấp nhận chữ thường, chữ hoa (`love`, `CARE`, `support`, `sorry`, `undo`...).
+- **Gỡ cảm xúc**: Truyền `typeReactions="UNDO"` hoặc `"UNREACT"` để thu hồi cảm xúc đã thả.
+- **Phản hồi thành công**:
+  ```python
+  {"success": 1, "messages": "Thả reaction thành công!"}
+  # hoặc khi gỡ:
+  {"success": 1, "messages": "Gỡ reaction thành công!"}
+  ```
 
 ### `_changeBio.py`
 
@@ -199,7 +235,7 @@ result = await _deletePost.func(
 )
 ```
 
-Sử dụng `useCometTrashPostMutation` để chuyển bài viết vào thùng rác.
+Sử dụng `useCometTrashPostMutation` để chuyển bài viết vào thùng rác. 
 - `postID`: ID của bài viết cần xoá.
 - `typePost`: Loại bài viết (`"my_post"` cho bài tự đăng, `"others"` cho bài share/bài của người khác). Trả về `success` nếu thành công.
 
@@ -231,6 +267,22 @@ Success:
 ```
 
 Parser loại trùng theo ID và lấy tối đa 5 kết quả. Keyword rỗng raise `ValueError`.
+
+### `_unFriend.py`
+
+```python
+result = await _unFriend.func(
+    data_fb,
+    friendID="100012345678",
+    client=client,
+)
+```
+
+| Tham số | Kiểu | Mô tả |
+|---|---|---|
+| `friendID` | `str` | Facebook ID (UID) của người cần hủy kết bạn |
+
+Sử dụng GraphQL mutation `FriendingCometUnfriendMutation` (doc_id `8752443744796374`). Target ID được tự động mã hóa dạng `restrictedUserNode{friendID}` Base64. Thành công trả về `{"success": 1, "messages": "Xóa bạn bè thành công!"}`.
 
 ### `_blocking.py`
 

@@ -78,9 +78,11 @@ Tất nhiên vẫn sẽ còn những lỗi vặt khó tìm ra, hoặc các đo�
 - 📊 Tạo cuộc thăm dò ý kiến (poll) và lấy toàn bộ metadata của thread
 
 ### Tính năng Facebook (`_features._facebook`)
-- 📝 Đăng bài, đổi tiểu sử, đăng ký mục trên hồ sơ
-- 👤 Tìm kiếm người dùng, lấy thông tin profile, quản lý thông báo
-- 🚫 Chặn / bỏ chặn, quản lý Marketplace và chế độ Professional
+- ❤️ **Thả và gỡ cảm xúc bài viết timeline** ([`_reactionPost`](src/fbchat_v2/_features/_facebook/README.md#-tiêu-điểm-_reactionpostpy-tương-tác-cảm-xúc): Like, Love, Care, Haha, Wow, Sad, Angry, Undo)
+- 📝 Đăng bài (`_createPost`), lưu trữ (`_archivePost`), xóa bài viết (`_deletePost`)
+- 👤 Tìm kiếm người dùng (`_search`), lấy thông tin profile (`_get_user_info`), quản lý thông báo (`_notification`)
+- 🚫 Chặn / bỏ chặn (`_blocking`), hủy kết bạn (`_unFriend`), quản lý Marketplace và chế độ Professional
+- 📖 *Xem hướng dẫn chi tiết tại [Tài liệu `fbchat_v2._features._facebook`](src/fbchat_v2/_features/_facebook/README.md)*
 
 ### Mới cập nhật
 - ⚡ Hỗ trợ **`async` / `await`** đầy đủ
