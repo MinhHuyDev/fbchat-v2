@@ -1086,7 +1086,7 @@ black --check src tests scripts
 mypy
 python -m compileall -q src tests scripts
 python -m build --wheel
-python scripts/verify_distribution.py dist/fbchat_v2-2.3.0-py3-none-any.whl
+python scripts/verify_distribution.py dist/fbchat_v2-2.3.1-py3-none-any.whl
 git diff --check
 ```
 

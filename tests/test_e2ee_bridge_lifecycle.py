@@ -50,7 +50,7 @@ def _wait_for_blocked_writer(bridge: e2ee._BridgeProcess, timeout: float = 2.0) 
 
 def _contract_script(
     *,
-    bridge_version: str = "2.3.0",
+    bridge_version: str = "2.3.1",
     connected: bool = True,
     e2ee_connected: bool = True,
 ) -> str:
@@ -88,7 +88,7 @@ def test_bridge_subprocess_contract_and_shutdown_are_hermetic(tmp_path: Path) ->
     try:
         hello = bridge._validate_contract()
         assert hello["protocolVersion"] == 1
-        assert hello["bridgeVersion"] == "2.3.0"
+        assert hello["bridgeVersion"] == "2.3.1"
     finally:
         bridge.close()
 
@@ -123,7 +123,7 @@ def test_bridge_reader_ignores_valid_json_that_is_not_an_object(tmp_path: Path) 
     )
     bridge = e2ee._BridgeProcess(Path(command[0]), command=command)
     try:
-        assert bridge._validate_contract()["bridgeVersion"] == "2.3.0"
+        assert bridge._validate_contract()["bridgeVersion"] == "2.3.1"
         assert bridge._reader.is_alive()
     finally:
         bridge.close()
@@ -173,7 +173,7 @@ def test_stale_reader_exit_cannot_stop_new_generation_writer(tmp_path: Path) -> 
         assert new_generation == old_generation + 1
 
         bridge._mark_generation_exited(old_proc, old_generation, old_writer_queue)
-        assert bridge._validate_contract()["bridgeVersion"] == "2.3.0"
+        assert bridge._validate_contract()["bridgeVersion"] == "2.3.1"
         assert bridge._writer.is_alive()
     finally:
         bridge.close()
@@ -200,7 +200,7 @@ def test_bridge_writer_handles_short_raw_pipe_writes(tmp_path: Path) -> None:
 
     bridge._proc.stdin = ShortWritePipe()  # type: ignore[assignment]
     try:
-        assert bridge._validate_contract()["bridgeVersion"] == "2.3.0"
+        assert bridge._validate_contract()["bridgeVersion"] == "2.3.1"
     finally:
         bridge.close()
 
@@ -244,7 +244,7 @@ def test_writer_transport_failure_taints_generation_and_watchdog_recovers(
         while not isinstance(state.get("data", {}).get("generation"), int):
             state = _wait_for_event(bridge.events, e2ee._BRIDGE_STATE_EVENT)
         assert first_proc.poll() is not None
-        assert bridge._validate_contract()["bridgeVersion"] == "2.3.0"
+        assert bridge._validate_contract()["bridgeVersion"] == "2.3.1"
     finally:
         bridge.close()
 
@@ -299,7 +299,7 @@ def test_reader_transport_failure_taints_generation_and_watchdog_recovers(
         while not isinstance(state.get("data", {}).get("generation"), int):
             state = _wait_for_event(bridge.events, e2ee._BRIDGE_STATE_EVENT)
         assert first_proc.poll() is not None
-        assert bridge._validate_contract()["bridgeVersion"] == "2.3.0"
+        assert bridge._validate_contract()["bridgeVersion"] == "2.3.1"
     finally:
         bridge.close()
         for stream in wrapped_streams:
@@ -395,7 +395,7 @@ def test_malformed_health_payload_causes_recovery_instead_of_watchdog_death(
         hello_calls = 0
         hello = {{
             "protocolVersion": 1,
-            "bridgeVersion": "2.3.0",
+            "bridgeVersion": "2.3.1",
             "capabilities": [
                 "newClient", "connect", "connectE2EE", "isConnected", "events"
             ],
@@ -419,7 +419,7 @@ def test_malformed_health_payload_causes_recovery_instead_of_watchdog_death(
     bridge.HEALTH_RPC_TIMEOUT = 0.5
     bridge.BASE_BACKOFF = 0.01
     try:
-        assert bridge._validate_contract()["bridgeVersion"] == "2.3.0"
+        assert bridge._validate_contract()["bridgeVersion"] == "2.3.1"
         watchdog = bridge.start_watchdog(enable_e2ee=False)
 
         state = _wait_for_event(bridge.events, e2ee._BRIDGE_STATE_EVENT)
@@ -428,7 +428,7 @@ def test_malformed_health_payload_causes_recovery_instead_of_watchdog_death(
         assert watchdog.is_alive()
         assert first_proc.poll() is not None
         assert bridge._proc is not first_proc
-        assert bridge._validate_contract()["bridgeVersion"] == "2.3.0"
+        assert bridge._validate_contract()["bridgeVersion"] == "2.3.1"
     finally:
         bridge.close()
 
@@ -448,7 +448,7 @@ def test_watchdog_does_not_kill_a_valid_long_running_rpc(tmp_path: Path) -> None
             print("launch", file=handle)
         hello = {{
             "protocolVersion": 1,
-            "bridgeVersion": "2.3.0",
+            "bridgeVersion": "2.3.1",
             "capabilities": [
                 "newClient", "connect", "connectE2EE", "isConnected", "events"
             ],
@@ -492,7 +492,7 @@ def test_watchdog_kills_hung_rpc_and_respawns(tmp_path: Path) -> None:
             print("launch", file=handle)
         hello = {{
             "protocolVersion": 1,
-            "bridgeVersion": "2.3.0",
+            "bridgeVersion": "2.3.1",
             "capabilities": [
                 "newClient", "connect", "connectE2EE", "isConnected", "events"
             ],
@@ -734,7 +734,7 @@ def test_watchdog_recovers_after_blocked_pipe_write_timeout(tmp_path: Path) -> N
                 time.sleep(1)
         hello = {{
             "protocolVersion": 1,
-            "bridgeVersion": "2.3.0",
+            "bridgeVersion": "2.3.1",
             "capabilities": [
                 "newClient", "connect", "connectE2EE", "isConnected", "events"
             ],
@@ -780,7 +780,7 @@ def test_watchdog_recovers_after_blocked_pipe_write_timeout(tmp_path: Path) -> N
             state = _wait_for_event(bridge.events, e2ee._BRIDGE_STATE_EVENT)
         assert first_proc.poll() is not None
         assert bridge._proc is not first_proc
-        assert bridge._validate_contract()["bridgeVersion"] == "2.3.0"
+        assert bridge._validate_contract()["bridgeVersion"] == "2.3.1"
     finally:
         bridge.close()
         caller.join(timeout=1.0)
@@ -803,7 +803,7 @@ def test_watchdog_kills_each_failed_replay_before_retry(tmp_path: Path) -> None:
         count = len(previous) + 1
         hello = {{
             "protocolVersion": 1,
-            "bridgeVersion": "2.3.0",
+            "bridgeVersion": "2.3.1",
             "capabilities": [
                 "newClient", "connect", "connectE2EE", "isConnected", "events"
             ],
@@ -863,7 +863,7 @@ def test_successful_short_lived_respawns_still_exhaust_retry_budget(
         threading.Timer(0.25, lambda: os._exit(17)).start()
         hello = {{
             "protocolVersion": 1,
-            "bridgeVersion": "2.3.0",
+            "bridgeVersion": "2.3.1",
             "capabilities": [
                 "newClient", "connect", "connectE2EE", "isConnected", "events"
             ],
@@ -950,7 +950,7 @@ def test_recovery_gates_external_rpc_and_timeout_covers_gate_wait(
         methods = pathlib.Path({str(methods)!r})
         hello = {{
             "protocolVersion": 1,
-            "bridgeVersion": "2.3.0",
+            "bridgeVersion": "2.3.1",
             "capabilities": [
                 "newClient", "connect", "connectE2EE", "isConnected", "events"
             ],

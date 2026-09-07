@@ -12,13 +12,14 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 DISTIBUTION_NAME = "fbchat-v2"
-EXPECTED_VERSION = "2.3.0"
+EXPECTED_VERSION = "2.3.1"
 PACKAGE_NAMES = ("_core", "_features", "_messaging")
 REQUIRED_WHEEL_MEMBERS = {
     "_core/__init__.py",
     "_core/_permissions.py",
     "_features/_facebook/__init__.py",
     "_features/_facebook/_unFriend.py",
+    "_features/_facebook/_reactionPost.py",
     "_features/_thread/__init__.py",
     "_messaging/__init__.py",
 }
@@ -79,6 +80,12 @@ def verify_imports() -> None:
     if importlib.util.find_spec("_features._facebook._unFriend") is None:
         raise RuntimeError("Không tìm thấy module _features._facebook._unFriend")
     importlib.import_module("_features._facebook._unFriend")
+
+    if "_reactionPost" not in exported:
+        raise RuntimeError("_features._facebook.__all__ chưa export _reactionPost")
+    if importlib.util.find_spec("_features._facebook._reactionPost") is None:
+        raise RuntimeError("Không tìm thấy module _features._facebook._reactionPost")
+    importlib.import_module("_features._facebook._reactionPost")
 
 
 def parse_args() -> argparse.Namespace:

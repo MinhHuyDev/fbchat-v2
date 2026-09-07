@@ -9,6 +9,19 @@ phiên bản tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ## [Unreleased]
 
+## [2.3.1] - 2026-09-07
+
+### Added
+
+- Module `_features._facebook._reactionPost`: Thả và gỡ cảm xúc bài viết timeline Facebook (`LIKE`, `LOVE`, `CARE`, `HAHA`, `WOW`, `SAD`, `ANGRY`, `UNDO`).
+- Hệ thống tài liệu chuyên biệt cho toàn bộ 13 module Facebook cá nhân tại `src/_features/_facebook/README.md` và `README_EN.md`.
+
+### Fixed
+
+- Chuẩn hóa telemetry attribution dynamic epoch milliseconds, dynamic client mutation ID, actor ID và referrer hợp lệ chống checkpoint Meta.
+- Tự động chuẩn hóa post ID thô sang Base64 `feedback:<postID>`, chống double encoding.
+- Khắc phục lỗi linter F401 và chuẩn hóa format Black/Ruff cho toàn bộ codebase.
+
 ## [2.3.0] - 2026-08-29
 
 ### Changed

@@ -60,7 +60,7 @@ const bridgeProtocolVersion = 1
 
 // bridgeVersion is intentionally overridable with -ldflags
 // "-X main.bridgeVersion=<version>" for release builds.
-var bridgeVersion = "2.3.0"
+var bridgeVersion = "2.3.1"
 
 var bridgeCapabilities = []string{
 	"newClient",
