@@ -30,5 +30,5 @@ __all__ = [
     "_unFriend",
     "_archivePost",
     "_deletePost",
-    "_reactionPost"
+    "_reactionPost",
 ]
