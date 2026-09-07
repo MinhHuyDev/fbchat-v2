@@ -42,6 +42,7 @@ The layer receives `dataFB` from `_core._session.dataGetHome()`. It does not rea
 ```text
 src/_features/
 ├── _facebook/
+│   ├── README.md                # Dedicated Facebook features documentation
 │   ├── _archivePost.py          # Archive a timeline post
 │   ├── _blocking.py             # Block/unblock a user
 │   ├── _changeBio.py            # Update bio
@@ -51,8 +52,10 @@ src/_features/
 │   ├── _marketplace.py          # Marketplace create/read
 │   ├── _notification.py         # Notifications
 │   ├── _professional.py         # Professional mode
+│   ├── _reactionPost.py         # React to or unreact a post
 │   ├── _registerOnProfile.py    # Additional profile
-│   └── _search.py               # User search
+│   ├── _search.py               # User search
+│   └── _unFriend.py             # Unfriend a user
 ├── _thread/
 │   ├── _addAdmin.py
 │   ├── _all_thread_data.py
@@ -71,17 +74,19 @@ src/_features/
 
 ```python
 [
-    "_archivePost",
+    "_blocking",
     "_changeBio",
     "_createPost",
-    "_deletePost",
-    "_professional",
-    "_search",
-    "_blocking",
-    "_registerOnProfile",
-    "_notification",
-    "_marketplace",
     "_get_user_info",
+    "_marketplace",
+    "_notification",
+    "_professional",
+    "_registerOnProfile",
+    "_search",
+    "_unFriend",
+    "_archivePost",
+    "_deletePost",
+    "_reactionPost",
 ]
 ```
 
@@ -134,6 +139,37 @@ Rules:
 ---
 
 ## ✨ Facebook features
+
+> 💡 *Full documentation and examples for all 13 Facebook personal account modules are available in [`src/_features/_facebook/README.md`](_facebook/README.md).*
+
+### `_reactionPost.py`
+
+```python
+result = await _reactionPost.func(
+    data_fb,
+    postID="123456789012345",
+    typeReactions="LOVE",
+    client=client,
+)
+```
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `dataFB` | `dict` | *Required* | Session state from `dataGetHome()` |
+| `postID` | `str` | *Required* | Facebook post ID (numeric string or Base64 `feedback:...`) |
+| `typeReactions` | `str` | *Required* | Reaction type: `LIKE`, `LOVE`, `CARE`, `HAHA`, `WOW`, `SAD`, `ANGRY`, or `UNDO`/`UNREACT` |
+| `client` | `httpx.AsyncClient` | `None` | Shared HTTP client (optional) |
+
+- **GraphQL Mutation**: `CometUFIFeedbackReactMutation` (doc_id `1054626957723036`).
+- **Normalized Target ID**: Automatically encodes raw numeric post IDs to Base64 `feedback:<postID>`.
+- **Case-insensitive & Alias Support**: Supports lowercase, uppercase, and aliases (`love`, `CARE`, `support`, `sorry`, `undo`...).
+- **Unreacting**: Pass `typeReactions="UNDO"` or `"UNREACT"` to remove an existing reaction.
+- **Success Response**:
+  ```python
+  {"success": 1, "messages": "Thả reaction thành công!"}
+  # or when unreacting:
+  {"success": 1, "messages": "Gỡ reaction thành công!"}
+  ```
 
 ### `_changeBio.py`
 
@@ -227,6 +263,22 @@ result = await _search.func(data_fb, "m008v", client=client)
 ```
 
 The parser deduplicates by ID and returns at most five users. An empty keyword raises `ValueError`.
+
+### `_unFriend.py`
+
+```python
+result = await _unFriend.func(
+    data_fb,
+    friendID="100012345678",
+    client=client,
+)
+```
+
+| Parameter | Type | Description |
+|---|---|---|
+| `friendID` | `str` | Facebook user ID (UID) of the friend to remove |
+
+Uses the `FriendingCometUnfriendMutation` GraphQL mutation (doc_id `8752443744796374`). The friend ID is automatically base64-encoded as `restrictedUserNode{friendID}`. Returns `{"success": 1, "messages": "Xóa bạn bè thành công!"}` on success.
 
 ### `_blocking.py`
 
