@@ -1,5 +1,21 @@
 # Agent Memories
 
+## 2026-09-07 — Phát hành PyPI v2.3.1
+
+### Mục tiêu
+- Port module _reactionPost.py và cập nhật __init__.py sang checkout đóng gói bchat-v2-pypi, bump version lên 2.3.1, push nhánh pypi và publish lên PyPI.
+
+### Đã thực hiện
+- Sao chép _reactionPost.py sang src/fbchat_v2/_features/_facebook/_reactionPost.py, chuẩn hóa namespace imports sang bchat_v2._core._utils.
+- Cập nhật export _reactionPost, _archivePost, _deletePost trong src/fbchat_v2/_features/_facebook/__init__.py.
+- Bump version lên 2.3.1 trong pyproject.toml, src/fbchat_v2/_core/__init__.py.
+- Decouple BRIDGE_RELEASE_VERSION trong _listening_e2ee.py để phiên bản bridge (2.3.0) có thể hoạt động độc lập với patch version của Python package mà không bị fail runtime check.
+- Cập nhật CHANGELOG.md và test assertions trong 	ests/test_packaging_regressions.py.
+- Xác minh: 5/5 pytest pass, Ruff pass, Mypy pass (44 source files), Twine strict pass.
+- Commit eat(facebook): add reactionPost feature and bump to v2.3.1 và push lên origin/pypi.
+- Build và upload hai distribution bchat_v2-2.3.1-py3-none-any.whl và bchat_v2-2.3.1.tar.gz lên PyPI qua Twine với API token trong keyring.
+- Xác nhận release live tại https://pypi.org/project/fbchat-v2/2.3.1/.
+
 ## 2026-08-29 — Hoàn tất phát hành PyPI v2.3.0
 
 ### Mục tiêu
