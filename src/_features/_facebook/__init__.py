@@ -29,5 +29,6 @@ __all__ = [
     "_search",
     "_unFriend",
     "_archivePost",
-    "_deletePost"
+    "_deletePost",
+    "_reactionPost"
 ]
