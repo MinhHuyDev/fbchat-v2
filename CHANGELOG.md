@@ -9,6 +9,13 @@ phiên bản tuân theo [Semantic Versioning](https://semver.org/lang/vi/).
 
 ## [Unreleased]
 
+## [2.3.1] - 2026-09-07
+
+### Added
+
+- Bổ sung module _features._facebook._reactionPost: Hỗ trợ thả cảm xúc (LIKE, LOVE, CARE, HAHA, WOW, SAD, ANGRY) hoặc gỡ cảm xúc (UNDO/UNREACT) trên bài viết cá nhân bằng GraphQL CometUFIFeedbackReactMutation.
+- Đồng bộ export _reactionPost, _archivePost, _deletePost trong _features._facebook.__all__.
+
 ## [2.3.0] - 2026-08-29
 
 ### Changed

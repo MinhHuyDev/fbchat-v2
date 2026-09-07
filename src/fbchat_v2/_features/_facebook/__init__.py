@@ -28,4 +28,7 @@ __all__ = [
     "_registerOnProfile",
     "_search",
     "_unFriend",
+    "_archivePost",
+    "_deletePost",
+    "_reactionPost",
 ]

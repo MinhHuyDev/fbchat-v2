@@ -69,7 +69,7 @@ class _StreamResponse:
 
 
 def test_public_namespace_and_version_are_stable() -> None:
-    assert fbchat_v2.__version__ == version("fbchat-v2") == "2.3.0"
+    assert fbchat_v2.__version__ == version("fbchat-v2") == "2.3.1"
     assert callable(_unFriend.func)
 
 
@@ -95,7 +95,7 @@ def test_release_bridge_checksums_are_bound(monkeypatch: pytest.MonkeyPatch) -> 
     assert e2ee.BRIDGE_SHA256 == EXPECTED_BRIDGE_SHA256
 
     binary_name = "fbchat-bridge-e2ee-windows-amd64.exe"
-    monkeypatch.setattr(e2ee, "_PACKAGE_VERSION", "2.3.0")
+    monkeypatch.setattr(e2ee, "_PACKAGE_VERSION", "2.3.1")
     assert e2ee._release_version_and_digest(binary_name) == (
         "2.3.0",
         EXPECTED_BRIDGE_SHA256[binary_name],
@@ -109,7 +109,7 @@ def test_namespaced_checkout_resolves_project_root(
     module_path.parent.mkdir(parents=True)
     module_path.touch()
     (tmp_path / "pyproject.toml").write_text(
-        '[project]\nname = "fbchat-v2"\nversion = "2.3.0"\n', encoding="utf-8"
+        '[project]\nname = "fbchat-v2"\nversion = "2.3.1"\n', encoding="utf-8"
     )
 
     monkeypatch.setattr(e2ee, "__file__", str(module_path))
@@ -118,7 +118,7 @@ def test_namespaced_checkout_resolves_project_root(
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "cache"))
 
     assert e2ee._source_project_root() == tmp_path
-    assert e2ee._expected_package_version() == "2.3.0"
+    assert e2ee._expected_package_version() == "2.3.1"
     assert e2ee._release_version_and_digest("fbchat-bridge-e2ee-windows-amd64.exe") == (
         "2.3.0",
         EXPECTED_BRIDGE_SHA256["fbchat-bridge-e2ee-windows-amd64.exe"],

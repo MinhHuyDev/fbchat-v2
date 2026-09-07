@@ -112,8 +112,8 @@ def _default_binary_path() -> Path:
         cache_root = Path(os.environ.get("LOCALAPPDATA") or Path.home())
     else:
         cache_root = Path(os.environ.get("XDG_CACHE_HOME") or (Path.home() / ".cache"))
-    package_version = _expected_package_version()
-    return cache_root / "fbchat-v2" / "bridge" / f"v{package_version}" / name
+    bridge_version = BRIDGE_RELEASE_VERSION or _expected_package_version()
+    return cache_root / "fbchat-v2" / "bridge" / f"v{bridge_version}" / name
 
 
 def _source_project_root() -> Path | None:
@@ -187,14 +187,9 @@ def _source_bridge_is_stale(binary: Path) -> bool:
 
 
 def _release_version_and_digest(binary_name: str) -> tuple[str, str]:
-    package_version = _expected_package_version()
-    release_version = BRIDGE_RELEASE_VERSION or package_version
+    release_version = BRIDGE_RELEASE_VERSION or _expected_package_version()
     if not _RELEASE_VERSION_PATTERN.fullmatch(release_version):
-        raise RuntimeError("Phiên bản package không hợp lệ để tải bridge an toàn.")
-    if BRIDGE_RELEASE_VERSION and BRIDGE_RELEASE_VERSION != package_version:
-        raise RuntimeError(
-            "Bảng checksum bridge không khớp phiên bản package đang cài đặt."
-        )
+        raise RuntimeError("Phiên bản bridge không hợp lệ để tải an toàn.")
 
     expected_sha256 = (
         (os.environ.get("FBCHAT_E2EE_SHA256") or BRIDGE_SHA256.get(binary_name) or "")
