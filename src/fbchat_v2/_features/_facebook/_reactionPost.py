@@ -69,7 +69,9 @@ def _build_form(
     clean_reaction = str(typeReactions).strip().upper()
     if clean_reaction not in _REACTION_MAP:
         valid_keys = ", ".join(
-            k for k in _REACTION_MAP.keys() if k not in {"SUPPORT", "SORRY", "ANGER", "NONE"}
+            k
+            for k in _REACTION_MAP.keys()
+            if k not in {"SUPPORT", "SORRY", "ANGER", "NONE"}
         )
         raise ValueError(
             f"Loại cảm xúc '{typeReactions}' không hợp lệ. Vui lòng sử dụng một trong các loại: {valid_keys}."
