@@ -1,5 +1,12 @@
 # Agent Memories
 
+## 2026-09-07 — Đồng bộ tài liệu Facebook features & _reactionPost.py
+- Viết mới và cập nhật toàn diện hệ thống tài liệu `README.md` liên quan đến `fbchat_v2._features._facebook`.
+- Tạo mới `src/fbchat_v2/_features/_facebook/README.md` và `README_EN.md` tài liệu hóa 13 module cá nhân kèm tiêu điểm `_reactionPost.py` (bảng cảm xúc, alias, telemetry, chuẩn hóa Base64 target ID, code mẫu).
+- Cập nhật cấu trúc thư mục, public API `__all__`, hướng dẫn `_reactionPost.py` và `_unFriend.py` vào `src/fbchat_v2/_features/README.md` & `README_EN.md`.
+- Làm nổi bật `_reactionPost` tại root `README.md` & `README_EN.md`.
+- Quét sạch mojibake và xác minh pass 100% `ruff check src tests` và `black --check src tests`. Đã commit và push `origin/pypi` (`bb5a956`).
+
 ## 2026-09-07 — Phát hành PyPI v2.3.1
 
 ### Mục tiêu
